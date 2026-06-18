@@ -1,18 +1,37 @@
 const game=new SlotGame();
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 
-// Build 5x5 grid
 const gridEl=document.getElementById('grid');
-const cellEls=[];
-for(let r=0;r<5;r++){
-  cellEls[r]=[];
-  for(let c=0;c<5;c++){
-    const el=document.createElement('div');
-    el.className='cell';
-    el.dataset.r=r;el.dataset.c=c;
-    gridEl.appendChild(el);
-    cellEls[r][c]=el;
+let cellEls=[];
+
+function buildGrid(){
+  const n=game.gridSize;
+  gridEl.innerHTML='';
+  gridEl.style.gridTemplateColumns=`repeat(${n},1fr)`;
+  cellEls=[];
+  for(let r=0;r<n;r++){
+    cellEls[r]=[];
+    for(let c=0;c<n;c++){
+      const el=document.createElement('div');
+      el.className='cell';
+      el.dataset.r=r;el.dataset.c=c;
+      gridEl.appendChild(el);
+      cellEls[r][c]=el;
+    }
   }
+  // grid size selector buttons
+  const sel=document.getElementById('grid-size-sel');
+  sel.innerHTML='';
+  [3,4,5].forEach(n=>{
+    const btn=document.createElement('button');
+    btn.className='gs-btn'+(game.gridSize===n?' active':'')+(game.unlockedGridSizes.has(n)?'':' locked');
+    btn.textContent=n+'×'+n;
+    btn.disabled=!game.unlockedGridSizes.has(n);
+    btn.addEventListener('click',()=>{
+      if(game.setGridSize(n)){ buildGrid(); renderGrid(); }
+    });
+    sel.appendChild(btn);
+  });
 }
 
 function getActiveEmojis(){
@@ -26,12 +45,14 @@ function applySymClass(el,id){
 }
 
 function renderGrid(){
-  for(let r=0;r<5;r++) for(let c=0;c<5;c++){
+  const n=game.gridSize;
+  for(let r=0;r<n;r++) for(let c=0;c<n;c++){
     const el=cellEls[r][c];
     el.textContent=SYM[game.grid[r][c]].e;
     applySymClass(el,game.grid[r][c]);
   }
 }
+buildGrid();
 renderGrid();
 
 // PAYTABLE (dynamic — shows only unlocked)
@@ -57,7 +78,7 @@ buildPaytable();
 // SHOP — event delegation on container
 const shopEl=document.getElementById('shop-content');
 shopEl.addEventListener('click',e=>{
-  const btn=e.target.closest('button[data-perm],button[data-con],button[data-upg]');
+  const btn=e.target.closest('button[data-perm],button[data-con],button[data-upg],button[data-grid]');
   if(!btn||btn.disabled) return;
   if(btn.dataset.perm){
     const id=btn.dataset.perm;
@@ -76,6 +97,14 @@ shopEl.addEventListener('click',e=>{
       buildShop();
       showConBuyPopup(item);
     }
+  } else if(btn.dataset.grid){
+    const id=btn.dataset.grid;
+    const item=GRID_ITEMS.find(i=>i.id===id);
+    if(game.buyGridItem(id)){
+      updateBalance();
+      buildShop();
+      showUnlockPopup({e:item.e,name:item.name}, item.desc);
+    }
   } else if(btn.dataset.upg){
     const id=btn.dataset.upg;
     const upg=UPGRADES.find(u=>u.id===id);
@@ -89,6 +118,25 @@ shopEl.addEventListener('click',e=>{
 
 function buildShop(){
   shopEl.innerHTML='';
+
+  const hg=document.createElement('div');
+  hg.className='shop-section-title';hg.textContent='🔲 그리드 확장';
+  shopEl.appendChild(hg);
+
+  for(const item of GRID_ITEMS){
+    const owned=game.unlockedGridSizes.has(item.size);
+    const canAfford=game.balance>=item.price;
+    const d=document.createElement('div');
+    d.className='shop-item'+(owned?' shop-owned':'');
+    const btn=document.createElement('button');
+    btn.className='shop-btn'+(owned?' owned':canAfford?'':' poor');
+    btn.dataset.grid=item.id;
+    btn.disabled=owned;
+    btn.textContent=owned?'보유중':'💰'+item.price;
+    d.innerHTML=`<span class="shop-emoji">${item.e}</span><div class="shop-info"><div class="shop-name">${item.name}</div><div class="shop-desc">${item.desc}</div></div>`;
+    d.appendChild(btn);
+    shopEl.appendChild(d);
+  }
 
   const h1=document.createElement('div');
   h1.className='shop-section-title';h1.textContent='🔓 영구 아이템 (심볼 해금)';
@@ -237,17 +285,25 @@ document.getElementById('betUp').addEventListener('click',()=>{game.betUp();upda
 function updateBet(){document.getElementById('betVal').textContent=game.bet;}
 function updateBalance(){document.getElementById('balance').textContent=game.balance.toLocaleString();}
 
-// SPIN
-const spinBtn=document.getElementById('spinBtn');
-spinBtn.addEventListener('click',doSpin);
+// LEVER
+const lever=document.getElementById('lever');
+lever.addEventListener('click', ()=>{ if(!game.spinning) pullLever(); });
+lever.addEventListener('touchend', e=>{ e.preventDefault(); if(!game.spinning) pullLever(); });
+
+function pullLever(){
+  lever.classList.add('pulled');
+  setTimeout(()=>lever.classList.remove('pulled'), 400);
+  setTimeout(doSpin, 150);
+}
 
 async function doSpin(){
   if(!game.canSpin()){
-    spinBtn.style.boxShadow='0 0 30px #e74c3c';
-    setTimeout(()=>spinBtn.style.boxShadow='',500);
+    lever.classList.add('lever-deny');
+    setTimeout(()=>lever.classList.remove('lever-deny'),500);
     return;
   }
-  spinBtn.disabled=true;
+  game.spinning=true;
+  const n=game.gridSize;
   cellEls.flat().forEach(c=>c.className='cell');
   document.getElementById('win-banner').classList.add('hidden');
   document.getElementById('win-lines').innerHTML='';
@@ -261,9 +317,9 @@ async function doSpin(){
     return setInterval(()=>{ el.textContent=emojis[Math.floor(Math.random()*emojis.length)]; },55);
   }));
 
-  for(let c=0;c<5;c++){
+  for(let c=0;c<n;c++){
     await delay(c===0?900:200);
-    for(let r=0;r<5;r++){
+    for(let r=0;r<n;r++){
       clearInterval(ivs[r][c]);
       const el=cellEls[r][c];
       el.classList.remove('spinning');
@@ -282,7 +338,7 @@ async function doSpin(){
   updateBalance();
   updateHistory();
   buildConsumableBar();
-  spinBtn.disabled=false;
+  game.spinning=false;
 }
 
 // Build sorted reveal list: sym wins (low→high payout) then scatters then specials

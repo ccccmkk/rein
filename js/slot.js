@@ -29,6 +29,11 @@ const PERMANENT_ITEMS = [
   {id:'unlock_mega',   sym:'mega',    price:8000, desc:'🌟 MEGA 심볼 추가 - 3개↑ 등장시 잭팟!'},
 ];
 
+const GRID_ITEMS = [
+  {id:'grid_4x4', size:4, price:1500,  e:'🔲', name:'4×4 그리드', desc:'4×4 그리드 해금 — 행 4줄, 당첨 기회 ↑'},
+  {id:'grid_5x5', size:5, price:5000,  e:'🔳', name:'5×5 그리드', desc:'5×5 그리드 해금 — 행 5줄, 스캐터 폭발'},
+];
+
 const CONSUMABLE_ITEMS = [
   {id:'con_2x',      price:150,  name:'다음 스핀 2배',   e:'✖️',  desc:'다음 1회 스핀 당첨금 2배', effect:'double_spin'},
   {id:'con_lucky',   price:200,  name:'럭키 스핀',       e:'🍀',  desc:'다음 1회 스핀 심볼 가중치 +50% 상승', effect:'lucky'},
@@ -96,14 +101,21 @@ class SlotGame{
   constructor(){
     this.balance=1000;
     this.betIdx=0;
+    this.gridSize=3;
+    this.unlockedGridSizes=new Set([3]);
     this.unlockedSymIds=new Set(['cherry','lemon','orange','grape']);
     this.ownedConsumables={};
     this.activeEffects=new Set();
-    this.upgradeLevels={};  // id -> level
+    this.upgradeLevels={};
     this._rebuildPool();
-    this.grid=Array.from({length:5},()=>Array.from({length:5},()=>this._randSym()));
+    this._resetGrid();
     this.spinning=false;
     this.history=[];
+  }
+
+  _resetGrid(){
+    const n=this.gridSize;
+    this.grid=Array.from({length:n},()=>Array.from({length:n},()=>this._randSym()));
   }
 
   _rebuildPool(){
@@ -144,6 +156,21 @@ class SlotGame{
     return true;
   }
 
+  buyGridItem(itemId){
+    const item=GRID_ITEMS.find(i=>i.id===itemId);
+    if(!item||this.balance<item.price||this.unlockedGridSizes.has(item.size)) return false;
+    this.balance-=item.price;
+    this.unlockedGridSizes.add(item.size);
+    return true;
+  }
+
+  setGridSize(n){
+    if(!this.unlockedGridSizes.has(n)) return false;
+    this.gridSize=n;
+    this._resetGrid();
+    return true;
+  }
+
   buyUpgrade(upgId){
     const upg=UPGRADES.find(u=>u.id===upgId);
     if(!upg) return false;
@@ -168,7 +195,8 @@ class SlotGame{
 
   spin(){
     this.balance-=this.bet;
-    this.grid=Array.from({length:5},()=>Array.from({length:5},()=>this._randSym()));
+    const n=this.gridSize;
+    this.grid=Array.from({length:n},()=>Array.from({length:n},()=>this._randSym()));
     return this.grid;
   }
 
@@ -181,8 +209,9 @@ class SlotGame{
     const wins=[];
     const winCells=new Set();
 
+    const n=this.gridSize;
     // Check each row: consecutive match from LEFT, WILD substitutes
-    for(let r=0;r<5;r++){
+    for(let r=0;r<n;r++){
       const row=this.grid[r];
       // find the target symbol (first non-wild)
       let target=null;
@@ -214,7 +243,7 @@ class SlotGame{
     // Scatter specials
     const scatters=[];
     let doubleActive=false;
-    for(let r=0;r<5;r++) for(let c=0;c<5;c++){
+    for(let r=0;r<n;r++) for(let c=0;c<n;c++){
       const sym=SYM[this.grid[r][c]];
       if(sym?.special&&sym.special!=='wild'&&sym.special!=='mega'){
         scatters.push({r,c,sym});
