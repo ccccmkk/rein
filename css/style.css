@@ -152,7 +152,7 @@ body{
 
 /* win-flash: cell highlight burst on reveal */
 .cell.win-flash{
-  animation:win-flash .35s ease-out;
+  animation:win-flash .6s ease-out;
 }
 @keyframes win-flash{
   0%{transform:scale(1.35);box-shadow:0 0 40px var(--gold),0 0 80px rgba(240,192,32,.6)}

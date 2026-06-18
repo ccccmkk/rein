@@ -281,13 +281,13 @@ async function revealWinsSequentially(result){
   let runningTotal=0;
 
   for(const item of list){
-    await delay(320);
+    await delay(700);
 
     if(item.type==='sym'){
       item.cells.forEach(([r,c])=>{
         cellEls[r][c].classList.add('win');
         cellEls[r][c].classList.add('win-flash');
-        setTimeout(()=>cellEls[r][c].classList.remove('win-flash'),400);
+        setTimeout(()=>cellEls[r][c].classList.remove('win-flash'),600);
       });
       runningTotal+=item.payout;
       const tag=document.createElement('span');
