@@ -21,41 +21,74 @@
     </div>
   </div>
 
-  <div id="grid-wrap">
-    <div id="grid"></div>
+  <!-- Tabs -->
+  <div id="tabs">
+    <button id="tab-slot" class="tab-btn active">🎰 슬롯</button>
+    <button id="tab-shop" class="tab-btn">🛒 상점</button>
   </div>
 
-  <div id="win-banner" class="hidden">
-    <div id="wb-amount">+0</div>
-    <div id="wb-detail"></div>
-  </div>
-
-  <div id="controls">
-    <div class="bet-row">
-      <button class="bet-adj" id="betDown">−</button>
-      <div class="bet-display">
-        <div class="bet-lbl">BET</div>
-        <div id="betVal">10</div>
-      </div>
-      <button class="bet-adj" id="betUp">+</button>
+  <!-- SLOT VIEW -->
+  <div id="slot-view">
+    <div id="grid-wrap">
+      <div id="grid"></div>
     </div>
-    <button id="spinBtn" class="spin-btn">S P I N</button>
+
+    <div id="win-banner" class="hidden">
+      <div id="wb-amount">+0</div>
+      <div id="wb-detail"></div>
+    </div>
+
+    <!-- Consumable inventory bar -->
+    <div id="con-bar-wrap">
+      <div id="con-bar"></div>
+    </div>
+
+    <div id="controls">
+      <div class="bet-row">
+        <button class="bet-adj" id="betDown">−</button>
+        <div class="bet-display">
+          <div class="bet-lbl">BET</div>
+          <div id="betVal">10</div>
+        </div>
+        <button class="bet-adj" id="betUp">+</button>
+      </div>
+      <button id="spinBtn" class="spin-btn">S P I N</button>
+    </div>
+
+    <div id="win-lines"></div>
+
+    <details id="paytable">
+      <summary>PAYTABLE ▾</summary>
+      <div id="pt-grid"></div>
+    </details>
+
+    <div id="history-wrap">
+      <div class="hist-label">HISTORY</div>
+      <div id="history"></div>
+    </div>
   </div>
 
-  <div id="win-lines"></div>
-
-  <details id="paytable" open>
-    <summary>PAYTABLE ▾</summary>
-    <div id="pt-grid"></div>
-  </details>
-
-  <div id="history-wrap">
-    <div class="hist-label">HISTORY</div>
-    <div id="history"></div>
+  <!-- SHOP VIEW -->
+  <div id="shop-view" class="hidden">
+    <div id="shop-content"></div>
   </div>
 
   <div style="height:env(safe-area-inset-bottom,16px)"></div>
 </div>
+
+<!-- Unlock Popup -->
+<div id="unlock-popup" class="hidden">
+  <div id="unlock-card">
+    <div id="up-emoji">🎉</div>
+    <div id="up-name">해금!</div>
+    <div id="up-desc"></div>
+    <button id="up-close">확인</button>
+  </div>
+</div>
+
+<!-- Effect Toast -->
+<div id="effect-toast" class="hidden"></div>
+
 <script src="js/slot.js"></script>
 <script src="js/main.js"></script>
 </body>

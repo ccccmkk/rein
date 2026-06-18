@@ -1,6 +1,5 @@
 const game=new SlotGame();
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
-const EMOJIS=SYMBOLS.map(s=>s.e);
 
 // Build 5x5 grid
 const gridEl=document.getElementById('grid');
@@ -11,10 +10,13 @@ for(let r=0;r<5;r++){
     const el=document.createElement('div');
     el.className='cell';
     el.dataset.r=r;el.dataset.c=c;
-    el.textContent=SYM[game.grid[r][c]].e;
     gridEl.appendChild(el);
     cellEls[r][c]=el;
   }
+}
+
+function getActiveEmojis(){
+  return [...game._pool].map(s=>s.e);
 }
 
 function applySymClass(el,id){
@@ -23,27 +25,182 @@ function applySymClass(el,id){
   if(sym?.special) el.classList.add('sp-'+sym.special);
 }
 
-// Build paytable
-const ptGrid=document.getElementById('pt-grid');
-for(const s of SYMBOLS){
-  const d=document.createElement('div');
-  d.className='pt-item'+(s.special==='mega'?' pt-mega':s.special?' pt-special':'');
-  if(s.special&&s.special!=='wild'&&s.special!=='mega'){
-    const desc=s.special==='bomb'?'+100~300 scatter':s.special==='double'?'라인 ×2':'+100~600 scatter';
-    d.innerHTML=`<span class="pt-emoji">${s.e}</span><div class="pt-info"><div class="pt-name">${s.name}</div><div class="pt-vals">${desc}</div></div>`;
-  } else if(s.special==='wild'){
-    d.innerHTML=`<span class="pt-emoji">${s.e}</span><div class="pt-info"><div class="pt-name">${s.name}</div><div class="pt-vals">아무 심볼 대체</div></div>`;
-  } else {
-    d.innerHTML=`<span class="pt-emoji">${s.e}</span><div class="pt-info"><div class="pt-name">${s.name}</div><div class="pt-vals">3=×3&nbsp; 4=×10&nbsp; 5=×30<br>val:${s.val}</div></div>`;
+function renderGrid(){
+  for(let r=0;r<5;r++) for(let c=0;c<5;c++){
+    const el=cellEls[r][c];
+    el.textContent=SYM[game.grid[r][c]].e;
+    applySymClass(el,game.grid[r][c]);
   }
-  ptGrid.appendChild(d);
+}
+renderGrid();
+
+// PAYTABLE (dynamic — shows only unlocked)
+function buildPaytable(){
+  const ptGrid=document.getElementById('pt-grid');
+  ptGrid.innerHTML='';
+  for(const s of game._pool){
+    const d=document.createElement('div');
+    d.className='pt-item'+(s.special==='mega'?' pt-mega':s.special?' pt-special':'');
+    if(s.special&&s.special!=='wild'&&s.special!=='mega'){
+      const desc=s.special==='bomb'?'+100~300 scatter':s.special==='double'?'라인 ×2':'+100~600 scatter';
+      d.innerHTML=`<span class="pt-emoji">${s.e}</span><div class="pt-info"><div class="pt-name">${s.name}</div><div class="pt-vals">${desc}</div></div>`;
+    } else if(s.special==='wild'){
+      d.innerHTML=`<span class="pt-emoji">${s.e}</span><div class="pt-info"><div class="pt-name">${s.name}</div><div class="pt-vals">아무 심볼 대체</div></div>`;
+    } else {
+      d.innerHTML=`<span class="pt-emoji">${s.e}</span><div class="pt-info"><div class="pt-name">${s.name}</div><div class="pt-vals">3=×3&nbsp;4=×10&nbsp;5=×30<br>val:${s.val}</div></div>`;
+    }
+    ptGrid.appendChild(d);
+  }
+}
+buildPaytable();
+
+// SHOP
+function buildShop(){
+  const shopEl=document.getElementById('shop-content');
+  shopEl.innerHTML='';
+
+  const h1=document.createElement('div');
+  h1.className='shop-section-title';h1.textContent='🔓 영구 아이템 (심볼 해금)';
+  shopEl.appendChild(h1);
+
+  for(const item of PERMANENT_ITEMS){
+    const sym=SYM[item.sym];
+    const owned=game.unlockedSymIds.has(item.sym);
+    const canAfford=game.balance>=item.price;
+    const d=document.createElement('div');
+    d.className='shop-item'+(owned?' shop-owned':'');
+    d.innerHTML=`
+      <span class="shop-emoji">${sym.e}</span>
+      <div class="shop-info">
+        <div class="shop-name">${sym.name}</div>
+        <div class="shop-desc">${item.desc}</div>
+      </div>
+      <button class="shop-btn${owned?' owned':canAfford?'':' poor'}"
+        data-perm="${item.id}" ${owned?'disabled':''}>
+        ${owned?'보유중':'💰'+item.price}
+      </button>`;
+    shopEl.appendChild(d);
+  }
+
+  const h2=document.createElement('div');
+  h2.className='shop-section-title';h2.textContent='⚗️ 소모 아이템';
+  shopEl.appendChild(h2);
+
+  for(const item of CONSUMABLE_ITEMS){
+    const count=game.ownedConsumables[item.id]||0;
+    const canAfford=game.balance>=item.price;
+    const d=document.createElement('div');
+    d.className='shop-item';
+    d.innerHTML=`
+      <span class="shop-emoji">${item.e}</span>
+      <div class="shop-info">
+        <div class="shop-name">${item.name}${count>0?` <span class="own-count">×${count}</span>`:''}</div>
+        <div class="shop-desc">${item.desc}</div>
+      </div>
+      <button class="shop-btn${canAfford?'':' poor'}" data-con="${item.id}">
+        💰${item.price}
+      </button>`;
+    shopEl.appendChild(d);
+  }
+
+  shopEl.querySelectorAll('[data-perm]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const id=btn.dataset.perm;
+      const item=PERMANENT_ITEMS.find(i=>i.id===id);
+      if(game.unlockSymbol(id)){
+        updateBalance();
+        buildShop();
+        buildPaytable();
+        showUnlockPopup(SYM[item.sym], item.desc);
+      }
+    });
+  });
+
+  shopEl.querySelectorAll('[data-con]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const id=btn.dataset.con;
+      const item=CONSUMABLE_ITEMS.find(i=>i.id===id);
+      if(game.buyConsumable(id)){
+        updateBalance();
+        buildShop();
+        showConBuyPopup(item);
+      }
+    });
+  });
+}
+
+// Consumable inventory bar
+function buildConsumableBar(){
+  const bar=document.getElementById('con-bar');
+  bar.innerHTML='';
+  for(const [id,count] of Object.entries(game.ownedConsumables)){
+    if(!count) continue;
+    const item=CONSUMABLE_ITEMS.find(i=>i.id===id);
+    if(!item) continue;
+    const btn=document.createElement('button');
+    btn.className='con-use-btn';
+    btn.title=item.name+' 사용';
+    btn.innerHTML=`${item.e}<span class="con-count">×${count}</span>`;
+    btn.addEventListener('click',()=>{
+      if(game.useConsumable(id)){
+        buildConsumableBar();
+        showEffectToast(item);
+      }
+    });
+    bar.appendChild(btn);
+  }
+}
+
+// Unlock popup
+function showUnlockPopup(sym, desc){
+  const popup=document.getElementById('unlock-popup');
+  document.getElementById('up-emoji').textContent=sym.e;
+  document.getElementById('up-name').textContent=sym.name+' 해금!';
+  document.getElementById('up-desc').textContent=desc;
+  popup.classList.remove('hidden');
+  popup.classList.add('popin');
+  setTimeout(()=>popup.classList.remove('popin'),500);
+}
+
+function showConBuyPopup(item){
+  const popup=document.getElementById('unlock-popup');
+  document.getElementById('up-emoji').textContent=item.e;
+  document.getElementById('up-name').textContent=item.name+' 구매!';
+  document.getElementById('up-desc').textContent=item.desc;
+  popup.classList.remove('hidden');
+  popup.classList.add('popin');
+  setTimeout(()=>popup.classList.remove('popin'),500);
+}
+
+document.getElementById('up-close').addEventListener('click',()=>{
+  document.getElementById('unlock-popup').classList.add('hidden');
+});
+
+function showEffectToast(item){
+  const t=document.getElementById('effect-toast');
+  t.textContent=item.e+' '+item.name+' 활성화!';
+  t.classList.remove('hidden');
+  t.classList.add('toast-in');
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>{t.classList.add('hidden');t.classList.remove('toast-in');},2200);
+}
+
+// Tab switching
+document.getElementById('tab-slot').addEventListener('click',()=>switchTab('slot'));
+document.getElementById('tab-shop').addEventListener('click',()=>switchTab('shop'));
+
+function switchTab(tab){
+  document.getElementById('tab-slot').classList.toggle('active',tab==='slot');
+  document.getElementById('tab-shop').classList.toggle('active',tab==='shop');
+  document.getElementById('slot-view').classList.toggle('hidden',tab!=='slot');
+  document.getElementById('shop-view').classList.toggle('hidden',tab!=='shop');
+  if(tab==='shop') buildShop();
 }
 
 // Bet controls
 document.getElementById('betDown').addEventListener('click',()=>{game.betDown();updateBet();});
 document.getElementById('betUp').addEventListener('click',()=>{game.betUp();updateBet();});
 function updateBet(){document.getElementById('betVal').textContent=game.bet;}
-
 function updateBalance(){document.getElementById('balance').textContent=game.balance.toLocaleString();}
 
 // SPIN
@@ -57,7 +214,6 @@ async function doSpin(){
     return;
   }
   spinBtn.disabled=true;
-  // Clear state
   cellEls.flat().forEach(c=>c.className='cell');
   document.getElementById('win-banner').classList.add('hidden');
   document.getElementById('win-lines').innerHTML='';
@@ -65,13 +221,12 @@ async function doSpin(){
   const grid=game.spin();
   updateBalance();
 
-  // Start spinning all cells
+  const emojis=getActiveEmojis();
   const ivs=cellEls.map(row=>row.map(el=>{
     el.classList.add('spinning');
-    return setInterval(()=>{ el.textContent=EMOJIS[Math.floor(Math.random()*EMOJIS.length)]; },55);
+    return setInterval(()=>{ el.textContent=emojis[Math.floor(Math.random()*emojis.length)]; },55);
   }));
 
-  // Stop column by column
   for(let c=0;c<5;c++){
     await delay(c===0?900:200);
     for(let r=0;r<5;r++){
@@ -86,23 +241,19 @@ async function doSpin(){
   }
 
   await delay(450);
-
   const result=game.resolve();
 
-  // Highlight win cells
   result.winCells.forEach(key=>{
     const [r,c]=key.split(',');
     cellEls[+r][+c].classList.add('win');
   });
 
-  // Win lines
   showWinLines(result);
-
-  // Win banner
   if(result.total>0) showBanner(result);
 
   updateBalance();
   updateHistory();
+  buildConsumableBar();
   spinBtn.disabled=false;
 }
 
@@ -110,8 +261,9 @@ function showBanner(result){
   const banner=document.getElementById('win-banner');
   document.getElementById('wb-amount').textContent='+'+result.total+' coins';
   const parts=[];
-  if(result.lineWin) parts.push('라인: +'+result.lineWin+(result.doubleActive?' (×2 적용)':''));
-  if(result.scatterWin) parts.push('스춰터: +'+result.scatterWin);
+  if(result.lineWin) parts.push('라인: +'+result.lineWin+(result.multiplier>1?` (×${result.multiplier})`:''));
+  if(result.scatterWin) parts.push('스캐터: +'+result.scatterWin);
+  if(result.shielded && result.total===0) parts.push('🛡️ 베팅 보호 발동!');
   document.getElementById('wb-detail').textContent=parts.join(' / ');
   banner.classList.remove('hidden');
 }
@@ -120,15 +272,16 @@ function showWinLines(result){
   const el=document.getElementById('win-lines');
   const tags=[];
   for(const w of result.wins){
-    const payout=Math.round(SYM[w.sym].val*w.mult*(game.bet/10)*(result.doubleActive?2:1));
+    const payout=Math.round(SYM[w.sym].val*w.mult*(game.bet/10)*result.multiplier);
     tags.push(`<span class="wl-item wl-line">${SYM[w.sym].e} ${w.name} ${w.count}매×${w.mult} +${payout}</span>`);
   }
   for(const s of result.scatters){
-    tags.push(`<span class="wl-item wl-scatter">${s.sym.e} ${s.sym.name} 스춰터</span>`);
+    tags.push(`<span class="wl-item wl-scatter">${s.sym.e} ${s.sym.name} 스캐터</span>`);
   }
   if(result.doubleActive) tags.push('<span class="wl-item wl-double">⚡ 전체 ×2!</span>');
   const mega=result.scatters.filter(s=>s.sym.special==='mega').length;
   if(mega>=3) tags.push(`<span class="wl-item wl-mega">🌟 MEGA JACKPOT ×${mega}</span>`);
+  if(result.multiplier>1) tags.push(`<span class="wl-item wl-double">✖️ 당첨금 ×${result.multiplier}</span>`);
   el.innerHTML=tags.join('');
 }
 
@@ -142,3 +295,4 @@ function updateHistory(){
 }
 
 updateBalance();
+buildConsumableBar();
