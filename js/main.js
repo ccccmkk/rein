@@ -1,16 +1,15 @@
 let sim;
 
 window.addEventListener('DOMContentLoaded', () => {
-  const canvas     = document.getElementById('c');
-  const sldSpeed   = document.getElementById('sldSpeed');
-  const sldPop     = document.getElementById('sldPop');
-  const lblSpeed   = document.getElementById('lblSpeed');
-  const lblPop     = document.getElementById('lblPop');
-  const btnStart   = document.getElementById('btnStart');
-  const btnPause   = document.getElementById('btnPause');
-  const btnReset   = document.getElementById('btnReset');
+  const sldSpeed = document.getElementById('sldSpeed');
+  const sldPop   = document.getElementById('sldPop');
+  const lblSpeed = document.getElementById('lblSpeed');
+  const lblPop   = document.getElementById('lblPop');
+  const btnStart = document.getElementById('btnStart');
+  const btnPause = document.getElementById('btnPause');
+  const btnReset = document.getElementById('btnReset');
 
-  sim = new Simulation(canvas, parseInt(sldPop.value));
+  sim = new Simulation(parseInt(sldPop.value));
 
   sldSpeed.addEventListener('input', () => {
     const v = parseInt(sldSpeed.value);

@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>REIN — City RL Simulation</title>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/controls/OrbitControls.js"></script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -54,19 +56,25 @@
       </div>
 
       <div class="section">
+        <div class="section-title">CAMERA</div>
+        <div class="hint">Left drag &mdash; rotate</div>
+        <div class="hint">Right drag &mdash; pan</div>
+        <div class="hint">Scroll &mdash; zoom</div>
+      </div>
+
+      <div class="section">
         <div class="section-title">LEGEND</div>
         <div class="legend-item"><i class="dot" style="background:#c0392b"></i>Home</div>
         <div class="legend-item"><i class="dot" style="background:#e67e22"></i>Restaurant</div>
         <div class="legend-item"><i class="dot" style="background:#27ae60"></i>Park</div>
         <div class="legend-item"><i class="dot" style="background:#2980b9"></i>Hospital</div>
         <div class="legend-item"><i class="dot" style="background:#8e44ad"></i>Workplace</div>
-        <div class="legend-item"><i class="dot" style="background:#f0f0f0"></i>Person (alive)</div>
+        <div class="legend-item"><i class="dot" style="background:#55ff55"></i>Person (healthy)</div>
+        <div class="legend-item"><i class="dot" style="background:#ff3333"></i>Person (critical)</div>
       </div>
     </div>
 
-    <div id="view">
-      <canvas id="c"></canvas>
-    </div>
+    <div id="view"></div>
   </div>
 
   <script src="js/city.js"></script>
