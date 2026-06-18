@@ -1,6 +1,44 @@
 const game=new SlotGame();
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 
+// Nickname
+let playerNick = localStorage.getItem('rein_nick')||'';
+
+function initNickname(){
+  if(playerNick){
+    document.getElementById('nick-modal').classList.add('hidden');
+    updateNickDisplay();
+    return;
+  }
+  const modal=document.getElementById('nick-modal');
+  const input=document.getElementById('nick-input');
+  const okBtn=document.getElementById('nick-ok');
+  modal.classList.remove('hidden');
+  input.focus();
+  const confirm=()=>{
+    const v=input.value.trim();
+    if(!v) return;
+    playerNick=v;
+    localStorage.setItem('rein_nick',v);
+    modal.classList.add('hidden');
+    updateNickDisplay();
+  };
+  okBtn.addEventListener('click',confirm);
+  input.addEventListener('keydown',e=>{ if(e.key==='Enter') confirm(); });
+}
+
+function updateNickDisplay(){
+  const el=document.getElementById('player-nick');
+  if(el) el.textContent=playerNick;
+}
+
+async function submitScore(){
+  if(!playerNick) return;
+  await saveScore(playerNick, game.balance);
+}
+
+initNickname();
+
 const gridEl=document.getElementById('grid');
 let cellEls=[];
 
@@ -270,13 +308,39 @@ function showEffectToast(item){
 // Tab switching
 document.getElementById('tab-slot').addEventListener('click',()=>switchTab('slot'));
 document.getElementById('tab-shop').addEventListener('click',()=>switchTab('shop'));
+document.getElementById('tab-rank').addEventListener('click',()=>switchTab('rank'));
 
 function switchTab(tab){
-  document.getElementById('tab-slot').classList.toggle('active',tab==='slot');
-  document.getElementById('tab-shop').classList.toggle('active',tab==='shop');
-  document.getElementById('slot-view').classList.toggle('hidden',tab!=='slot');
-  document.getElementById('shop-view').classList.toggle('hidden',tab!=='shop');
+  ['slot','shop','rank'].forEach(t=>{
+    document.getElementById('tab-'+t).classList.toggle('active',t===tab);
+    document.getElementById(t+'-view').classList.toggle('hidden',t!==tab);
+  });
   if(tab==='shop') buildShop();
+  if(tab==='rank') buildRank();
+}
+
+async function buildRank(){
+  const el=document.getElementById('rank-content');
+  el.innerHTML='<div class="rank-loading">불러오는 중...</div>';
+  const rows=await getLeaderboard();
+  if(!rows||!rows.length){ el.innerHTML='<div class="rank-loading">아직 기록 없음</div>'; return; }
+  const myNick=playerNick;
+  el.innerHTML=`
+    <div class="rank-title">🏆 TOP 10</div>
+    ${rows.map((r,i)=>`
+      <div class="rank-row${r.nickname===myNick?' rank-me':''}">
+        <span class="rank-pos">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</span>
+        <span class="rank-nick">${r.nickname}</span>
+        <span class="rank-bal">${r.balance.toLocaleString()} 💰</span>
+      </div>`).join('')}
+    <button id="rank-submit" class="rank-submit-btn">내 점수 등록</button>
+  `;
+  document.getElementById('rank-submit').addEventListener('click', async()=>{
+    const btn=document.getElementById('rank-submit');
+    btn.textContent='등록 중...';btn.disabled=true;
+    await submitScore();
+    buildRank();
+  });
 }
 
 // Bet controls

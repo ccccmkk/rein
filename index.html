@@ -14,7 +14,10 @@
 <body>
 <div id="app">
   <div id="topbar">
-    <span class="brand">REIN <span class="brand-sub">SLOTS</span></span>
+    <div class="brand-wrap">
+      <span class="brand">REIN <span class="brand-sub">SLOTS</span></span>
+      <span id="player-nick" class="player-nick"></span>
+    </div>
     <div class="top-bal">
       <span class="bal-label">COINS</span>
       <span id="balance">1,000</span>
@@ -25,6 +28,7 @@
   <div id="tabs">
     <button id="tab-slot" class="tab-btn active">S L O T</button>
     <button id="tab-shop" class="tab-btn">S H O P</button>
+    <button id="tab-rank" class="tab-btn">R A N K</button>
   </div>
 
   <!-- SLOT VIEW -->
@@ -82,7 +86,22 @@
     <div id="shop-content"></div>
   </div>
 
+  <!-- RANK VIEW -->
+  <div id="rank-view" class="hidden">
+    <div id="rank-content"></div>
+  </div>
+
   <div style="height:env(safe-area-inset-bottom,16px)"></div>
+</div>
+
+<!-- Nickname Modal -->
+<div id="nick-modal">
+  <div id="nick-card">
+    <div id="nick-title">🎰 REIN SLOTS</div>
+    <div id="nick-sub">닉네임을 입력하세요</div>
+    <input id="nick-input" type="text" maxlength="12" placeholder="닉네임 (최대 12자)">
+    <button id="nick-ok">시작!</button>
+  </div>
 </div>
 
 <!-- Unlock Popup -->
@@ -98,6 +117,7 @@
 <!-- Effect Toast -->
 <div id="effect-toast" class="hidden"></div>
 
+<script src="js/db.js"></script>
 <script src="js/slot.js"></script>
 <script src="js/main.js"></script>
 <script>

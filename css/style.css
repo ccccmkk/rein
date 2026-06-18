@@ -22,8 +22,10 @@ body{
   padding:env(safe-area-inset-top,6px) 14px 8px;
   min-height:50px;flex-shrink:0;
 }
+.brand-wrap{display:flex;flex-direction:column;gap:1px}
 .brand{font-size:1.2em;font-weight:bold;color:var(--gold);letter-spacing:4px}
 .brand-sub{font-size:.55em;color:var(--dim);letter-spacing:2px}
+.player-nick{font-size:.6em;color:var(--purple);letter-spacing:1px}
 .top-bal{text-align:right}
 .bal-label{font-size:.55em;color:var(--dim);letter-spacing:2px;display:block}
 #balance{font-size:1.4em;font-weight:bold;color:var(--gold2)}
@@ -359,6 +361,51 @@ body{
 }
 .popin{animation:card-popin .4s cubic-bezier(.34,1.56,.64,1)}
 @keyframes card-popin{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* NICKNAME MODAL */
+#nick-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.85);
+  display:flex;align-items:center;justify-content:center;z-index:1000;
+}
+#nick-modal.hidden{display:none!important}
+#nick-card{
+  background:linear-gradient(135deg,#1a0a30,#2a1050);
+  border:2px solid var(--purple);border-radius:20px;
+  padding:32px 24px;text-align:center;width:88%;max-width:300px;
+  box-shadow:0 0 60px rgba(153,85,255,.3);
+}
+#nick-title{font-size:1.4em;font-weight:bold;color:var(--gold);letter-spacing:4px;margin-bottom:6px}
+#nick-sub{font-size:.75em;color:var(--dim);margin-bottom:18px}
+#nick-input{
+  width:100%;padding:10px 14px;border-radius:10px;
+  background:#0e0820;border:1px solid var(--purple);
+  color:var(--text);font-family:inherit;font-size:1em;
+  text-align:center;outline:none;margin-bottom:14px;
+}
+#nick-ok{
+  width:100%;padding:11px;border-radius:10px;border:none;
+  background:linear-gradient(135deg,#6633cc,#9955ff);
+  color:#fff;font-size:1em;font-weight:bold;font-family:inherit;cursor:pointer;
+}
+
+/* RANK VIEW */
+#rank-view{padding:14px 10px;overflow-y:auto}
+.rank-title{font-size:.65em;color:var(--gold);letter-spacing:3px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.rank-loading{text-align:center;color:var(--dim);padding:40px;font-size:.8em}
+.rank-row{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;border-radius:10px;
+  background:#110820;border:1px solid var(--border);margin-bottom:5px;
+}
+.rank-row.rank-me{border-color:var(--purple);background:#1a0830}
+.rank-pos{font-size:1.1em;width:28px;text-align:center;flex-shrink:0}
+.rank-nick{flex:1;font-size:.85em;color:var(--text)}
+.rank-bal{font-size:.82em;color:var(--gold);font-weight:bold}
+.rank-submit-btn{
+  width:100%;margin-top:12px;padding:11px;border-radius:10px;border:none;
+  background:linear-gradient(135deg,#8B6914,#c8a82a,#f0c020);
+  color:#000;font-size:.9em;font-weight:bold;font-family:inherit;cursor:pointer;
+}
 
 /* EFFECT TOAST */
 #effect-toast{
