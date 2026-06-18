@@ -336,6 +336,7 @@ function switchTab(tab){
     document.getElementById('tab-'+t).classList.toggle('active',t===tab);
     document.getElementById(t+'-view').classList.toggle('hidden',t!==tab);
   });
+  if(tab==='slot') buildConsumableBar();
   if(tab==='shop') buildShop();
   if(tab==='upg') buildUpgradeTab();
   if(tab==='rank') buildRank();
