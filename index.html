@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.json">
   <title>REIN SLOTS</title>
-  <link rel="stylesheet" href="css/style.css?v=2">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <div id="app">
@@ -89,7 +89,19 @@
 <!-- Effect Toast -->
 <div id="effect-toast" class="hidden"></div>
 
-<script src="js/slot.js?v=2"></script>
-<script src="js/main.js?v=2"></script>
+<script src="js/slot.js"></script>
+<script src="js/main.js"></script>
+<script>
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('/rein/sw.js').then(reg=>{
+      reg.addEventListener('updatefound',()=>{
+        const nw=reg.installing;
+        nw.addEventListener('statechange',()=>{
+          if(nw.state==='activated') location.reload();
+        });
+      });
+    });
+  }
+</script>
 </body>
 </html>
