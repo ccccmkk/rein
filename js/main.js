@@ -429,13 +429,22 @@ function buildUpgradeTab(){
   saveBtn.className='settings-btn';saveBtn.textContent='💾 저장';
   saveBtn.addEventListener('click',()=>{ game.save(); showToastMsg('저장 완료!'); });
 
+  const cacheBtn=document.createElement('button');
+  cacheBtn.className='settings-btn';cacheBtn.textContent='🗂️ 캐시 초기화';
+  cacheBtn.addEventListener('click',async()=>{
+    const keys=await caches.keys();
+    await Promise.all(keys.map(k=>caches.delete(k)));
+    showToastMsg('캐시 삭제 완료! 새로고침합니다...');
+    setTimeout(()=>location.reload(),1200);
+  });
+
   const resetBtn=document.createElement('button');
   resetBtn.className='settings-btn settings-btn-danger';resetBtn.textContent='🗑️ 완전 초기화';
   resetBtn.addEventListener('click',()=>{
     if(confirm('모든 진행상황을 초기화할까요? 되돌릴 수 없습니다.')){ localStorage.removeItem('rein_save');location.reload(); }
   });
 
-  settingsWrap.appendChild(saveBtn);settingsWrap.appendChild(resetBtn);el.appendChild(settingsWrap);
+  settingsWrap.appendChild(saveBtn);settingsWrap.appendChild(cacheBtn);settingsWrap.appendChild(resetBtn);el.appendChild(settingsWrap);
 }
 
 function showToastMsg(msg){
