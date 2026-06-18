@@ -231,6 +231,7 @@ body{
 .wl-item.wl-scatter{border-color:#44dd66;color:#44dd66}
 .wl-item.wl-double{border-color:#44aaff;color:#44aaff}
 .wl-item.wl-mega{border-color:var(--gold2);color:var(--gold2);animation:mega-rainbow 2s linear infinite}
+.wl-item.wl-bingo{border-color:#ff44aa;color:#ff44aa;font-weight:bold;animation:mega-rainbow 1s linear infinite}
 
 /* PAYTABLE */
 #paytable{padding:6px 10px;border-top:1px solid var(--border)}
@@ -292,14 +293,39 @@ body{
 #con-bar-wrap{min-height:36px;padding:4px 10px;display:flex;align-items:center}
 #con-bar{display:flex;gap:6px;flex-wrap:wrap}
 .con-use-btn{
-  display:flex;align-items:center;gap:3px;
+  display:flex;align-items:center;gap:3px;position:relative;
   background:#1a1030;border:1px solid var(--purple);
   border-radius:20px;padding:4px 10px;cursor:pointer;
   color:var(--text);font-size:.85em;font-family:inherit;
-  transition:background .1s;
+  transition:all .15s;
 }
 .con-use-btn:hover{background:#2a1848}
+.con-use-btn.con-pending{
+  background:#2a0048;border-color:#ff44aa;
+  box-shadow:0 0 10px #ff44aa66;color:#ff88cc;
+  animation:pending-pulse 1s ease-in-out infinite;
+}
+@keyframes pending-pulse{0%,100%{box-shadow:0 0 6px #ff44aa55}50%{box-shadow:0 0 16px #ff44aacc}}
+.con-active-dot{
+  position:absolute;top:-3px;right:-3px;
+  width:8px;height:8px;border-radius:50%;
+  background:#ff44aa;border:1px solid var(--bg);
+}
 .con-count{font-size:.75em;color:var(--dim)}
+
+/* FIREWORKS */
+#fireworks-overlay{
+  position:fixed;inset:0;pointer-events:none;z-index:2000;
+}
+.fw-particle{
+  position:absolute;width:10px;height:10px;border-radius:50%;
+  animation:fw-burst 1s ease-out forwards;
+}
+@keyframes fw-burst{
+  0%{transform:scale(0);opacity:1}
+  60%{transform:scale(1) translate(var(--dx,0),var(--dy,0));opacity:1}
+  100%{transform:scale(.5) translate(var(--dx,0),var(--dy,0));opacity:0}
+}
 
 /* SHOP */
 #shop-content{display:flex;flex-direction:column;gap:6px}

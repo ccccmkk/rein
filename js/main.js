@@ -116,9 +116,17 @@ buildPaytable();
 // SHOP — event delegation on container
 const shopEl=document.getElementById('shop-content');
 shopEl.addEventListener('click',e=>{
-  const btn=e.target.closest('button[data-perm],button[data-con],button[data-grid]');
+  const btn=e.target.closest('button[data-perm],button[data-con],button[data-grid],button[data-bingo]');
   if(!btn||btn.disabled) return;
-  if(btn.dataset.perm){
+  if(btn.dataset.bingo){
+    const id=btn.dataset.bingo;
+    const item=BINGO_ITEMS.find(i=>i.id===id);
+    if(game.buyBingo(id)){
+      updateBalance();
+      buildShop();
+      showUnlockPopup(item, item.desc);
+    }
+  } else if(btn.dataset.perm){
     const id=btn.dataset.perm;
     const item=PERMANENT_ITEMS.find(i=>i.id===id);
     if(game.unlockSymbol(id)){
@@ -188,6 +196,25 @@ function buildShop(){
     shopEl.appendChild(d);
   }
 
+  const hb=document.createElement('div');
+  hb.className='shop-section-title';hb.textContent='🎯 빙고 시스템';
+  shopEl.appendChild(hb);
+
+  for(const item of BINGO_ITEMS){
+    const owned=game.bingoPurchased;
+    const canAfford=game.balance>=item.price;
+    const d=document.createElement('div');
+    d.className='shop-item'+(owned?' shop-owned':'');
+    const btn=document.createElement('button');
+    btn.className='shop-btn'+(owned?' owned':canAfford?'':' poor');
+    btn.dataset.bingo=item.id;
+    btn.disabled=owned;
+    btn.textContent=owned?'보유중':'💰'+item.price;
+    d.innerHTML=`<span class="shop-emoji">${item.e}</span><div class="shop-info"><div class="shop-name">${item.name}</div><div class="shop-desc">${item.desc}<br><span style="color:#f0c020;font-size:.9em">2줄:×4배 / 3줄:×10배 / 4줄:×25배 / 풀:×300배</span></div></div>`;
+    d.appendChild(btn);
+    shopEl.appendChild(d);
+  }
+
   const h3=document.createElement('div');
   h3.className='shop-section-title';h3.textContent='⚗️ 소모 아이템';
   shopEl.appendChild(h3);
@@ -207,7 +234,7 @@ function buildShop(){
   }
 }
 
-// Consumable inventory bar
+// Consumable inventory bar — click to toggle pending (one at a time, consumed after spin)
 function buildConsumableBar(){
   const bar=document.getElementById('con-bar');
   bar.innerHTML='';
@@ -216,14 +243,14 @@ function buildConsumableBar(){
     const item=CONSUMABLE_ITEMS.find(i=>i.id===id);
     if(!item) continue;
     const btn=document.createElement('button');
-    btn.className='con-use-btn';
-    btn.title=item.name+' 사용';
-    btn.innerHTML=`${item.e}<span class="con-count">×${count}</span>`;
+    const isPending=game.pendingConsumable===id;
+    btn.className='con-use-btn'+(isPending?' con-pending':'');
+    btn.title=isPending?item.name+' 취소 (대기중)':item.name+' 활성화';
+    btn.innerHTML=`${item.e}<span class="con-count">×${count}</span>${isPending?'<span class="con-active-dot"></span>':''}`;
     btn.addEventListener('click',()=>{
-      if(game.useConsumable(id)){
-        buildConsumableBar();
-        showEffectToast(item);
-      }
+      const result=game.setPendingConsumable(id);
+      buildConsumableBar();
+      if(result==='set') showEffectToast(item);
     });
     bar.appendChild(btn);
   }
@@ -273,7 +300,6 @@ function showEffectToast(item){
   t._timer=setTimeout(()=>{t.classList.add('hidden');t.classList.remove('toast-in');},2200);
 }
 
-// Tab switching
 // Multiplier modal
 document.getElementById('mult-btn').addEventListener('click',()=>{
   buildMultModal();
@@ -282,6 +308,11 @@ document.getElementById('mult-btn').addEventListener('click',()=>{
 document.getElementById('mult-close').addEventListener('click',()=>{
   document.getElementById('mult-modal').classList.add('hidden');
 });
+document.getElementById('mult-modal').addEventListener('click',e=>{
+  if(e.target===document.getElementById('mult-modal'))
+    document.getElementById('mult-modal').classList.add('hidden');
+});
+// Tab switching
 
 function buildMultModal(){
   const multBonus = 1+(game.upgradeLevels['up_match_mult']||0)*0.20;
@@ -434,6 +465,10 @@ async function doSpin(){
   document.getElementById('win-banner').classList.add('hidden');
   document.getElementById('win-lines').innerHTML='';
 
+  // Activate pending consumable now (consumed after spin)
+  const usedItem=game.activatePendingConsumable();
+  if(usedItem) buildConsumableBar();
+
   const grid=game.spin();
   updateBalance();
 
@@ -552,6 +587,20 @@ async function revealWinsSequentially(result){
     wlEl.scrollLeft=wlEl.scrollWidth;
   }
 
+  // Bingo bonus reveal
+  if(result.bingoBonus>0){
+    await delay(700);
+    const tag=document.createElement('span');
+    tag.className='wl-item wl-bingo wl-reveal';
+    const label=result.fullBingo?'🎯 FULL BINGO!!!':
+      result.bingoCount>=4?'🎯 트리플 빙고!!':
+      result.bingoCount>=3?'🎯 더블 빙고!':'🎯 빙고!';
+    tag.textContent=`${label} +${result.bingoBonus}`;
+    wlEl.appendChild(tag);
+    wlEl.scrollLeft=wlEl.scrollWidth;
+    if(result.fullBingo) showFireworks();
+  }
+
   // Final big banner
   if(result.total>0) await showBannerFinal(result);
   if(result.shielded && result.total===0) showBannerShield();
@@ -574,8 +623,33 @@ async function showBannerFinal(result){
   const parts=[];
   if(result.symWin) parts.push('심볼: +'+result.symWin+(result.multiplier>1?` (×${result.multiplier})`:''));
   if(result.scatterWin) parts.push('스캐터: +'+result.scatterWin);
+  if(result.bingoBonus) parts.push('빙고: +'+result.bingoBonus);
   document.getElementById('wb-detail').textContent=parts.join(' / ');
   banner.classList.remove('hidden');
+}
+
+function showFireworks(){
+  const overlay=document.createElement('div');
+  overlay.id='fireworks-overlay';
+  document.body.appendChild(overlay);
+  function burst(cx,cy){
+    for(let i=0;i<12;i++){
+      const p=document.createElement('div');
+      p.className='fw-particle';
+      const angle=Math.random()*360;
+      const dist=40+Math.random()*80;
+      const dx=Math.cos(angle*Math.PI/180)*dist;
+      const dy=Math.sin(angle*Math.PI/180)*dist;
+      p.style.left=cx+'%';p.style.top=cy+'%';
+      p.style.background=`hsl(${Math.random()*360},100%,65%)`;
+      p.style.setProperty('--dx',dx+'px');p.style.setProperty('--dy',dy+'px');
+      p.style.animationDuration=(.6+Math.random()*.6)+'s';
+      overlay.appendChild(p);
+    }
+  }
+  burst(30,30);burst(70,25);burst(50,50);burst(20,65);burst(80,60);
+  setTimeout(()=>{ burst(40,20);burst(60,70);burst(25,45); },600);
+  setTimeout(()=>overlay.remove(),3500);
 }
 
 function showBannerShield(){

@@ -41,6 +41,10 @@ const CONSUMABLE_ITEMS = [
   {id:'con_shield',  price:100,  name:'배팅 보호',       e:'🛡️',  desc:'다음 1회 스핀 패배시 베팅 반환', effect:'shield'},
 ];
 
+const BINGO_ITEMS = [
+  {id:'bingo_basic', price:1800, e:'🎯', name:'빙고 시스템', desc:'완전한 라인(전체 칸 일치) 달성 시 빙고 보너스 지급'},
+];
+
 // Upgrades: each level increases effect, price scales up
 const UPGRADES = [
   {
@@ -107,6 +111,8 @@ class SlotGame{
     this.ownedConsumables={};
     this.activeEffects=new Set();
     this.upgradeLevels={};
+    this.bingoPurchased=false;
+    this.pendingConsumable=null;
     this._rebuildPool();
     this._resetGrid();
     this.spinning=false;
@@ -169,6 +175,36 @@ class SlotGame{
     this.gridSize=n;
     this._resetGrid();
     return true;
+  }
+
+  buyBingo(itemId){
+    const item=BINGO_ITEMS.find(i=>i.id===itemId);
+    if(!item||this.balance<item.price||this.bingoPurchased) return false;
+    this.balance-=item.price;
+    this.bingoPurchased=true;
+    return true;
+  }
+
+  setPendingConsumable(conItemId){
+    if(this.pendingConsumable===conItemId){
+      this.pendingConsumable=null;
+      return 'cancelled';
+    }
+    if(!this.ownedConsumables[conItemId]) return false;
+    this.pendingConsumable=conItemId;
+    return 'set';
+  }
+
+  activatePendingConsumable(){
+    if(!this.pendingConsumable) return null;
+    const id=this.pendingConsumable;
+    this.pendingConsumable=null;
+    const item=CONSUMABLE_ITEMS.find(i=>i.id===id);
+    if(!item||!this.ownedConsumables[id]) return null;
+    this.ownedConsumables[id]--;
+    if(!this.ownedConsumables[id]) delete this.ownedConsumables[id];
+    this.activeEffects.add(item.effect);
+    return item;
   }
 
   buyUpgrade(upgId){
@@ -280,8 +316,27 @@ class SlotGame{
     if(this.activeEffects.has('double_spin')) multiplier=2;
     symWin*=multiplier;
 
+    // Bingo: count lines where ALL n cells matched
+    let bingoBonus=0;
+    let bingoCount=0;
+    let fullBingo=false;
+    if(this.bingoPurchased){
+      const totalLines=n*2+2;
+      for(const w of wins){ if(w.cells.length===n) bingoCount++; }
+      fullBingo=bingoCount===totalLines;
+      if(fullBingo){
+        bingoBonus=this.bet*300;
+      } else if(bingoCount>=4){
+        bingoBonus=this.bet*25;
+      } else if(bingoCount>=3){
+        bingoBonus=this.bet*10;
+      } else if(bingoCount>=2){
+        bingoBonus=this.bet*4;
+      }
+    }
+
     const shielded=this.activeEffects.has('shield');
-    const total=Math.round(symWin+scatterWin);
+    const total=Math.round(symWin+scatterWin+bingoBonus);
     if(shielded&&total===0) this.balance+=this.bet;
 
     this.balance+=total;
@@ -291,6 +346,7 @@ class SlotGame{
     this.activeEffects.clear();
 
     return{wins,winCells,scatters,symWin:Math.round(symWin),scatterWin:Math.round(scatterWin),
+      bingoBonus:Math.round(bingoBonus),bingoCount,fullBingo,
       total,doubleActive,multiplier,shielded};
   }
 }
