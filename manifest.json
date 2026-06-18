@@ -1,18 +1,1 @@
-{
-  "name": "REIN Roulette",
-  "short_name": "REIN",
-  "description": "3D 룰렛 게임",
-  "start_url": "/rein/",
-  "display": "standalone",
-  "orientation": "any",
-  "background_color": "#0a0f0a",
-  "theme_color": "#0a0f0a",
-  "icons": [
-    {
-      "src": "icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
-  ]
-}
+{"name":"REIN Slots","short_name":"REIN","start_url":"/rein/","display":"standalone","orientation":"any","background_color":"#08050f","theme_color":"#08050f","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
