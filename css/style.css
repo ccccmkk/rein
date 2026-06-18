@@ -225,9 +225,12 @@ body{
   border-bottom:2px solid var(--border);flex-shrink:0;
 }
 .tab-btn{
-  flex:1;padding:10px;border:none;background:none;
-  color:var(--dim);font-family:inherit;font-size:.85em;
-  letter-spacing:1px;cursor:pointer;transition:color .15s,border-bottom .15s;
+  flex:1;padding:11px 6px;
+  border:none;border-radius:0;outline:none;
+  background:none;-webkit-appearance:none;appearance:none;
+  color:var(--dim);font-family:'Courier New',monospace;font-size:.82em;
+  font-weight:bold;letter-spacing:3px;cursor:pointer;
+  transition:color .15s;
   border-bottom:2px solid transparent;margin-bottom:-2px;
 }
 .tab-btn.active{color:var(--gold);border-bottom-color:var(--gold)}
