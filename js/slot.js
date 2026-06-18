@@ -106,79 +106,72 @@ class SlotGame{
   }
 
   resolve(){
-    const wins=[];const winCells=new Set();
-    for(const line of LINES){
-      const r=checkLine(this.grid,line.cells);
-      if(r){wins.push({...line,...r});line.cells.forEach(([row,col])=>winCells.add(`${row},${col}`));}
+    const flat=this.grid.flat();
+    const wildCount=flat.filter(id=>id==='wild').length;
+
+    // Count each normal symbol (wild adds to best match)
+    const cnt={};
+    for(let r=0;r<5;r++) for(let c=0;c<5;c++){
+      const id=this.grid[r][c];
+      const sym=SYM[id];
+      if(!sym?.special || sym.special==='mega') cnt[id]=(cnt[id]||0)+1;
     }
+
+    const wins=[];
+    const winCells=new Set();
+
+    for(const [id,base] of Object.entries(cnt)){
+      if(id==='wild') continue;
+      const total = id==='mega' ? base : base+wildCount;
+      if(total<3) continue;
+      const mult = total>=8?100: total>=6?50: total>=5?20: total>=4?8: 3;
+      // collect actual cells of this symbol (+ wilds)
+      const cells=[];
+      for(let r=0;r<5;r++) for(let c=0;c<5;c++){
+        if(this.grid[r][c]===id || (this.grid[r][c]==='wild' && id!=='mega')) cells.push([r,c]);
+      }
+      cells.forEach(([r,c])=>winCells.add(`${r},${c}`));
+      wins.push({sym:id,count:total,mult,cells});
+    }
+
+    // Scatter specials
     const scatters=[];
     let doubleActive=false;
     for(let r=0;r<5;r++) for(let c=0;c<5;c++){
       const sym=SYM[this.grid[r][c]];
       if(sym?.special&&sym.special!=='wild'&&sym.special!=='mega'){
         scatters.push({r,c,sym});
+        winCells.add(`${r},${c}`);
         if(sym.special==='double') doubleActive=true;
       }
     }
-    let lineWin=0;
-    for(const w of wins) lineWin+=SYM[w.sym].val*w.mult*(this.bet/10);
+
+    let symWin=0;
+    for(const w of wins) symWin+=SYM[w.sym].val*w.mult*(this.bet/10);
     let scatterWin=0;
     for(const s of scatters){
       if(s.sym.special==='bomb') scatterWin+=Math.floor(Math.random()*200)+100;
       if(s.sym.special==='gift') scatterWin+=Math.floor(Math.random()*500)+100;
     }
-    const megaCount=this.grid.flat().filter(id=>id==='mega').length;
+    const megaCount=flat.filter(id=>id==='mega').length;
     if(megaCount>=3) scatterWin+=megaCount*600;
-    if(doubleActive&&lineWin>0) lineWin*=2;
+    if(doubleActive&&symWin>0) symWin*=2;
 
-    let multiplier = 1;
+    let multiplier=1;
     if(this.activeEffects.has('double_spin')) multiplier=2;
-    lineWin *= multiplier;
+    symWin*=multiplier;
 
-    const shielded = this.activeEffects.has('shield');
-    const total = Math.round(lineWin+scatterWin);
-    if(shielded && total===0) this.balance+=this.bet;
+    const shielded=this.activeEffects.has('shield');
+    const total=Math.round(symWin+scatterWin);
+    if(shielded&&total===0) this.balance+=this.bet;
 
     this.balance+=total;
     this.history.unshift({bet:this.bet,win:total});
     if(this.history.length>12)this.history.pop();
 
-    const usedEffects = [...this.activeEffects];
     this.activeEffects.clear();
 
-    return{wins,winCells,scatters,lineWin:Math.round(lineWin),scatterWin:Math.round(scatterWin),
-      total,doubleActive,multiplier,shielded,usedEffects};
+    return{wins,winCells,scatters,symWin:Math.round(symWin),scatterWin:Math.round(scatterWin),
+      total,doubleActive,multiplier,shielded};
   }
-}
-
-function getLines(){
-  const L=[];
-  for(let r=0;r<5;r++) L.push({name:`행${r+1}`,cells:[[r,0],[r,1],[r,2],[r,3],[r,4]]});
-  for(let c=0;c<5;c++) L.push({name:`열${c+1}`,cells:[[0,c],[1,c],[2,c],[3,c],[4,c]]});
-  L.push({name:'↘대각',cells:[[0,0],[1,1],[2,2],[3,3],[4,4]]});
-  L.push({name:'↙대각',cells:[[0,4],[1,3],[2,2],[3,1],[4,0]]});
-  return L;
-}
-const LINES = getLines();
-
-function checkLine(grid,cells){
-  const ids=cells.map(([r,c])=>grid[r][c]);
-  let wilds=0;
-  const normals=[];
-  for(const id of ids){
-    if(id==='wild') wilds++;
-    else if(!SYM[id]?.special) normals.push(id);
-    else if(SYM[id]?.special==='mega') normals.push(id);
-  }
-  if(!normals.length){
-    const total=wilds;
-    if(total<3)return null;
-    return{sym:'crown',count:total,mult:total>=5?30:total>=4?10:3};
-  }
-  const cnt={};
-  for(const id of normals) cnt[id]=(cnt[id]||0)+1;
-  const [best,bc]=Object.entries(cnt).sort((a,b)=>b[1]-a[1])[0];
-  const total=bc+wilds;
-  if(total<3)return null;
-  return{sym:best,count:total,mult:total>=5?30:total>=4?10:3};
 }

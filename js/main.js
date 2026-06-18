@@ -47,7 +47,7 @@ function buildPaytable(){
     } else if(s.special==='wild'){
       d.innerHTML=`<span class="pt-emoji">${s.e}</span><div class="pt-info"><div class="pt-name">${s.name}</div><div class="pt-vals">아무 심볼 대체</div></div>`;
     } else {
-      d.innerHTML=`<span class="pt-emoji">${s.e}</span><div class="pt-info"><div class="pt-name">${s.name}</div><div class="pt-vals">3=×3&nbsp;4=×10&nbsp;5=×30<br>val:${s.val}</div></div>`;
+      d.innerHTML=`<span class="pt-emoji">${s.e}</span><div class="pt-info"><div class="pt-name">${s.name}</div><div class="pt-vals">3=×3 4=×8 5=×20 6+=×50<br>val:${s.val}</div></div>`;
     }
     ptGrid.appendChild(d);
   }
@@ -243,16 +243,16 @@ async function doSpin(){
   spinBtn.disabled=false;
 }
 
-// Build sorted reveal list: line wins (low→high payout) then scatters then specials
+// Build sorted reveal list: sym wins (low→high payout) then scatters then specials
 function buildRevealList(result){
   const list=[];
 
-  // Line wins sorted by payout ascending
-  const lineWins=[...result.wins].map(w=>{
+  // Symbol wins sorted by payout ascending
+  const symWins=[...result.wins].map(w=>{
     const payout=Math.round(SYM[w.sym].val*w.mult*(game.bet/10)*result.multiplier);
-    return{type:'line',w,payout,cells:[...w.cells]};
+    return{type:'sym',w,payout,cells:[...w.cells]};
   }).sort((a,b)=>a.payout-b.payout);
-  list.push(...lineWins);
+  list.push(...symWins);
 
   // Scatter items
   for(const s of result.scatters){
@@ -283,8 +283,7 @@ async function revealWinsSequentially(result){
   for(const item of list){
     await delay(320);
 
-    if(item.type==='line'){
-      // Light up these cells
+    if(item.type==='sym'){
       item.cells.forEach(([r,c])=>{
         cellEls[r][c].classList.add('win');
         cellEls[r][c].classList.add('win-flash');
@@ -293,7 +292,7 @@ async function revealWinsSequentially(result){
       runningTotal+=item.payout;
       const tag=document.createElement('span');
       tag.className='wl-item wl-line wl-reveal';
-      tag.textContent=`${SYM[item.w.sym].e} ${item.w.name} ${item.w.count}매×${item.w.mult} +${item.payout}`;
+      tag.textContent=`${SYM[item.w.sym].e} ${item.w.count}개 ×${item.w.mult} +${item.payout}`;
       wlEl.appendChild(tag);
       updateBannerRunning(runningTotal, result);
 
@@ -349,7 +348,7 @@ async function showBannerFinal(result){
   setTimeout(()=>amtEl.classList.remove('count-up'),600);
   document.getElementById('wb-amount').textContent='+'+result.total+' coins';
   const parts=[];
-  if(result.lineWin) parts.push('라인: +'+result.lineWin+(result.multiplier>1?` (×${result.multiplier})`:''));
+  if(result.symWin) parts.push('심볼: +'+result.symWin+(result.multiplier>1?` (×${result.multiplier})`:''));
   if(result.scatterWin) parts.push('스캐터: +'+result.scatterWin);
   document.getElementById('wb-detail').textContent=parts.join(' / ');
   banner.classList.remove('hidden');
