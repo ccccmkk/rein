@@ -29,7 +29,6 @@ class Bird {
     this.prevAction = null;
     this.neighbors  = [];
 
-    // For formula display
     this._lastCohesion  = 0;
     this._lastCollision = 0;
     this._lastAlignment = 0;
@@ -37,7 +36,6 @@ class Bird {
   }
 
   getState(allBirds) {
-    // Find nearest 5 birds (distanceToSquared for speed)
     const others = [];
     for (const b of allBirds) {
       if (b.id === this.id) continue;
@@ -72,7 +70,6 @@ class Bird {
         col++;
       } else if (dist < COHESION_R) {
         coh++;
-        // alignment: normalized dot product (0 to 1)
         const dot = _b_tmpA.copy(this.vel).normalize()
                             .dot(_b_tmpB.copy(bird.vel).normalize());
         align += Math.max(0, dot);
@@ -81,7 +78,8 @@ class Bird {
     this._lastCohesion  = coh;
     this._lastCollision = col;
     this._lastAlignment = coh > 0 ? align / coh : 0;
-    this.lastReward = 0.15 * coh - 3.0 * col + 0.05 * align;
+    // Rebalanced: cohesion reward >> collision penalty so birds learn to flock
+    this.lastReward = 0.5 * coh - 1.0 * col + 0.2 * align;
     return this.lastReward;
   }
 

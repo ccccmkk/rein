@@ -30,8 +30,8 @@ class Simulation {
     const H = view.clientHeight || window.innerHeight;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x030310);
-    this.scene.fog = new THREE.FogExp2(0x030310, 0.005);
+    this.scene.background = new THREE.Color(0x08091a);
+    this.scene.fog = new THREE.FogExp2(0x08091a, 0.004);
 
     this.camera = new THREE.PerspectiveCamera(60, W / H, 0.1, 600);
     this.camera.position.set(0, 28, 105);
@@ -40,13 +40,13 @@ class Simulation {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     this.renderer.setSize(W, H);
-    // Insert canvas before the formula overlay
     view.insertBefore(this.renderer.domElement, view.firstChild);
 
-    this.scene.add(new THREE.AmbientLight(0x112244, 2.8));
-    const moon = new THREE.DirectionalLight(0xaaccff, 1.6);
-    moon.position.set(-30, 50, 10);
-    this.scene.add(moon);
+    // Bright ambient so birds are always visible
+    this.scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+    const sun = new THREE.DirectionalLight(0xcce0ff, 2.0);
+    sun.position.set(-30, 50, 10);
+    this.scene.add(sun);
 
     this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
     this.controls.target.set(0, 0, 0);
@@ -70,7 +70,7 @@ class Simulation {
     const sg = new THREE.BufferGeometry();
     sg.setAttribute('position', new THREE.Float32BufferAttribute(sp, 3));
     this.scene.add(new THREE.Points(sg,
-      new THREE.PointsMaterial({ color: 0xffffff, size: 0.2, transparent: true, opacity: 0.7 })
+      new THREE.PointsMaterial({ color: 0xffffff, size: 0.35, transparent: true, opacity: 0.9 })
     ));
 
     // Moon
@@ -81,19 +81,18 @@ class Simulation {
     moonMesh.position.set(-90, 60, -170);
     this.scene.add(moonMesh);
 
-    // Moon glow
     const halo = new THREE.Mesh(
-      new THREE.SphereGeometry(10, 16, 16),
-      new THREE.MeshBasicMaterial({ color: 0xfff0aa, transparent: true, opacity: 0.06, side: THREE.BackSide })
+      new THREE.SphereGeometry(11, 16, 16),
+      new THREE.MeshBasicMaterial({ color: 0xfff0aa, transparent: true, opacity: 0.12, side: THREE.BackSide })
     );
     halo.position.copy(moonMesh.position);
     this.scene.add(halo);
 
-    // Bounding volume (subtle wireframe)
+    // Bounding volume wireframe — visible blue
     this.scene.add(Object.assign(
       new THREE.LineSegments(
         new THREE.EdgesGeometry(new THREE.BoxGeometry(BOUNDS*2, BOUNDS_Y*2, BOUNDS*2)),
-        new THREE.LineBasicMaterial({ color: 0x111130, transparent: true, opacity: 0.35 })
+        new THREE.LineBasicMaterial({ color: 0x2244cc, transparent: true, opacity: 0.5 })
       )
     ));
   }
@@ -105,8 +104,8 @@ class Simulation {
 
   _initBirdMesh() {
     if (this.birdMesh) this.scene.remove(this.birdMesh);
-    const geo = new THREE.ConeGeometry(0.18, 0.78, 4);
-    geo.rotateX(-Math.PI / 2); // tip → +Z
+    const geo = new THREE.ConeGeometry(0.22, 0.9, 4);
+    geo.rotateX(-Math.PI / 2);
     this.birdMesh = new THREE.InstancedMesh(
       geo,
       new THREE.MeshLambertMaterial(),
@@ -129,10 +128,11 @@ class Simulation {
       _dummy.updateMatrix();
       this.birdMesh.setMatrixAt(i, _dummy.matrix);
 
-      // Color: isolated=dark blue, flock=bright white
+      // Color: isolated=blue, flock=bright yellow-white
       const n = b.neighbors.filter(nb => nb.dist < COHESION_R).length;
-      const t = Math.min(n / 8, 1);
-      _col.setHSL(0.63 - t * 0.23, 0.9 - t * 0.5, 0.22 + t * 0.68);
+      const t = Math.min(n / 6, 1);
+      // hue: 0.65 (blue) → 0.15 (yellow), lightness: 0.45 → 0.95
+      _col.setHSL(0.65 - t * 0.5, 1.0 - t * 0.3, 0.45 + t * 0.5);
       this.birdMesh.setColorAt(i, _col);
     }
     this.birdMesh.instanceMatrix.needsUpdate = true;
@@ -145,17 +145,15 @@ class Simulation {
     ctx.clearRect(0, 0, W, H);
     if (history.length < 2) return;
 
-    const mn = Math.min(...history, -2), mx = Math.max(...history, 0.5);
+    const mn = Math.min(...history, -1), mx = Math.max(...history, 0.5);
     const range = mx - mn || 1;
     const toY = v => H - ((v - mn) / range) * H;
 
-    // Zero line
     const zy = toY(0);
     ctx.strokeStyle = 'rgba(80,80,120,0.4)';
     ctx.lineWidth = 0.5;
     ctx.beginPath(); ctx.moveTo(0, zy); ctx.lineTo(W, zy); ctx.stroke();
 
-    // Reward curve (red → green gradient)
     const grad = ctx.createLinearGradient(0, 0, W, 0);
     grad.addColorStop(0, '#e74c3c');
     grad.addColorStop(0.5, '#f39c12');
@@ -200,7 +198,7 @@ class Simulation {
     if (this._rewardHist.length > 260) this._rewardHist.shift();
 
     this._tickN++;
-    if (this._tickN % 8 === 0) this.dqn.trainAsync();
+    if (this._tickN % 4 === 0) this.dqn.trainAsync(); // train 2x more often
 
     return {
       avgReward:    avgR,
@@ -222,24 +220,23 @@ class Simulation {
     document.getElementById('sPhase').textContent = phase;
 
     if (s.avgReward !== undefined) {
-      const fCoh   = 0.15 * s.avgCohesion;
-      const fColl  = 3.00 * s.avgCollision;
-      const fAlign = 0.05 * s.avgAlignment * s.avgCohesion;
+      const fCoh   = 0.5  * s.avgCohesion;
+      const fColl  = 1.0  * s.avgCollision;
+      const fAlign = 0.2  * s.avgAlignment * s.avgCohesion;
       const avgR   = s.avgReward;
 
       document.getElementById('sCohesion').textContent   = s.avgCohesion.toFixed(1);
       document.getElementById('sCollisions').textContent = Math.round(s.avgCollision * this.birds.length);
       document.getElementById('sAvgReward').textContent  = avgR.toFixed(3);
 
-      // Formula overlay values
-      const el = (id, val, positive) => {
+      const setVal = (id, val, positive) => {
         const el = document.getElementById(id);
         el.textContent = (positive ? '+' : '−') + Math.abs(val).toFixed(3);
         el.className = 'f-val ' + (positive ? 'pos' : 'neg');
       };
-      el('fv-flock',  fCoh,  true);
-      el('fv-coll',   fColl, false);
-      el('fv-align',  fAlign, fAlign >= 0);
+      setVal('fv-flock',  fCoh,  true);
+      setVal('fv-coll',   fColl, false);
+      setVal('fv-align',  fAlign, fAlign >= 0);
 
       const tot = document.getElementById('fv-total');
       tot.textContent  = (avgR >= 0 ? '+' : '') + avgR.toFixed(3);

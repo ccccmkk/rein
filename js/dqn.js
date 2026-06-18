@@ -2,14 +2,14 @@ class DQN {
   constructor() {
     this.epsilon      = 1.0;
     this.epsilonMin   = 0.05;
-    this.epsilonDecay = 0.9998;
+    this.epsilonDecay = 0.999;   // faster: was 0.9998
     this.gamma        = 0.95;
     this.batchSize    = 64;
     this.maxMemory    = 30000;
     this.memory       = [];
     this._pending     = false;
     this._trainCount  = 0;
-    this._syncEvery   = 300;
+    this._syncEvery   = 200;
     this.online       = this._net();
     this.target       = this._net();
     this._sync();
@@ -34,7 +34,6 @@ class DQN {
     this.memory.push([s, a, r, ns, done]);
   }
 
-  // Efficient batch inference for all birds
   actBatch(states) {
     const actions = new Array(states.length);
     const gi = [];
