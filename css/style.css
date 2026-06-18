@@ -56,48 +56,47 @@ body{
 .gs-btn.active{border-color:var(--gold);color:var(--gold);background:#1a1400}
 .gs-btn.locked{opacity:.35;cursor:default}
 
-/* LEVER */
+/* LEVER — pulls top-knob DOWN around bottom pivot */
 #lever-wrap{
   display:flex;flex-direction:column;align-items:center;
-  flex-shrink:0;width:44px;user-select:none;
-  cursor:pointer;
+  flex-shrink:0;width:48px;user-select:none;cursor:pointer;
+  justify-content:flex-end;padding-bottom:4px;
 }
 #lever{
-  position:relative;width:44px;height:120px;
-  display:flex;flex-direction:column;align-items:center;
-  justify-content:flex-start;
+  position:relative;width:48px;height:130px;
+  transform-origin:bottom center;
+  transition:transform .18s cubic-bezier(.4,0,.2,1);
 }
 #lever-base{
-  position:absolute;bottom:0;
-  width:34px;height:18px;
-  background:linear-gradient(180deg,#2a1848,#1a1030);
-  border:2px solid var(--border);border-radius:8px;
+  position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:36px;height:20px;
+  background:linear-gradient(180deg,#3a2060,#1a1030);
+  border:2px solid var(--purple);border-radius:8px;
+  box-shadow:0 0 8px #9955ff44;
 }
 #lever-rod{
-  width:8px;height:90px;
-  background:linear-gradient(90deg,#6633cc,#9955ff,#6633cc);
+  position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
+  width:8px;height:110px;
+  background:linear-gradient(90deg,#5522aa,#9955ff,#5522aa);
   border-radius:4px;
-  transform-origin:bottom center;
-  transition:transform .15s ease-in, box-shadow .15s;
   box-shadow:0 0 8px #9955ff66;
-  margin-top:6px;
 }
 #lever-knob{
-  width:32px;height:32px;border-radius:50%;
-  background:radial-gradient(circle at 35% 35%, #ff6666, #cc2222);
-  border:2px solid #ff4444;
-  box-shadow:0 0 12px #ff444488;
-  margin-top:-4px;
-  transition:transform .15s, box-shadow .15s;
-  z-index:1;
+  position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:36px;height:36px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, #ff7777, #cc2222);
+  border:2px solid #ff5555;
+  box-shadow:0 0 14px #ff444499;
+  transition:box-shadow .18s;
 }
-#lever.pulled #lever-rod{ transform:rotate(30deg); box-shadow:0 0 20px #9955ff; }
-#lever.pulled #lever-knob{ transform:translateY(12px) scale(.92); box-shadow:0 0 20px #ff4444; }
-#lever.lever-deny #lever-knob{ animation:knob-deny .4s ease; }
-@keyframes knob-deny{
-  0%,100%{transform:translateX(0)}
-  25%{transform:translateX(-6px)}
-  75%{transform:translateX(6px)}
+/* pulled = whole lever rotates forward ~40deg around bottom */
+#lever.pulled{ transform:rotate(40deg); }
+#lever.pulled #lever-knob{ box-shadow:0 0 28px #ff4444; }
+#lever.lever-deny{ animation:lever-deny .4s ease; }
+@keyframes lever-deny{
+  0%,100%{transform:rotate(0deg)}
+  30%{transform:rotate(-8deg)}
+  70%{transform:rotate(8deg)}
 }
 .cell{
   aspect-ratio:1;
@@ -328,6 +327,21 @@ body{
 .shop-btn:hover:not(:disabled){filter:brightness(1.2)}
 .shop-btn.owned{background:#1a1030;color:var(--dim);border:1px solid var(--border);cursor:default}
 .shop-btn.poor{background:#2a1020;color:#884444;border:1px solid #441020;cursor:default}
+/* UPGRADE TAB */
+#upg-view{overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px}
+.upg-card{
+  background:#110820;border:1px solid var(--border);
+  border-radius:12px;padding:12px;
+}
+.upg-card.maxed{border-color:var(--gold);opacity:.7}
+.upg-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.upg-icon{font-size:2em;flex-shrink:0}
+.upg-meta{flex:1}
+.upg-name{font-size:.85em;color:var(--text);font-weight:bold}
+.upg-stat{font-size:.9em;color:var(--purple);font-weight:bold;margin:2px 0}
+.upg-desc{font-size:.68em;color:var(--dim);margin-bottom:8px}
+.upg-card .shop-btn{width:100%;margin-top:4px}
+
 .own-count{color:var(--gold);font-size:.85em}
 .upg-lv{font-size:.75em;color:var(--purple);font-weight:normal}
 .lvbars{display:flex;gap:2px;margin-top:5px;flex-wrap:wrap}

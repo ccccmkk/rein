@@ -116,7 +116,7 @@ buildPaytable();
 // SHOP — event delegation on container
 const shopEl=document.getElementById('shop-content');
 shopEl.addEventListener('click',e=>{
-  const btn=e.target.closest('button[data-perm],button[data-con],button[data-upg],button[data-grid]');
+  const btn=e.target.closest('button[data-perm],button[data-con],button[data-grid]');
   if(!btn||btn.disabled) return;
   if(btn.dataset.perm){
     const id=btn.dataset.perm;
@@ -142,14 +142,6 @@ shopEl.addEventListener('click',e=>{
       updateBalance();
       buildShop();
       showUnlockPopup({e:item.e,name:item.name}, item.desc);
-    }
-  } else if(btn.dataset.upg){
-    const id=btn.dataset.upg;
-    const upg=UPGRADES.find(u=>u.id===id);
-    if(game.buyUpgrade(id)){
-      updateBalance();
-      buildShop();
-      showUpgradePopup(upg, game.upgradeLevels[id]);
     }
   }
 });
@@ -192,30 +184,6 @@ function buildShop(){
     btn.disabled=owned;
     btn.textContent=owned?'보유중':'💰'+item.price;
     d.innerHTML=`<span class="shop-emoji">${sym.e}</span><div class="shop-info"><div class="shop-name">${sym.name}</div><div class="shop-desc">${item.desc}</div></div>`;
-    d.appendChild(btn);
-    shopEl.appendChild(d);
-  }
-
-  const h2=document.createElement('div');
-  h2.className='shop-section-title';h2.textContent='📈 업그레이드';
-  shopEl.appendChild(h2);
-
-  for(const upg of UPGRADES){
-    const lv=game.upgradeLevels[upg.id]||0;
-    const maxed=lv>=upg.maxLevel;
-    const price=upgradePrice(upg,lv);
-    const canAfford=game.balance>=price;
-    const d=document.createElement('div');
-    d.className='shop-item'+(maxed?' shop-owned':'');
-    // level bar
-    const bars=Array.from({length:upg.maxLevel},(_,i)=>
-      `<span class="lvbar${i<lv?' filled':''}"></span>`).join('');
-    const btn=document.createElement('button');
-    btn.className='shop-btn'+(maxed?' owned':canAfford?'':' poor');
-    btn.dataset.upg=upg.id;
-    btn.disabled=maxed;
-    btn.textContent=maxed?'MAX':'💰'+price;
-    d.innerHTML=`<span class="shop-emoji">${upg.e}</span><div class="shop-info"><div class="shop-name">${upg.name} <span class="upg-lv">Lv.${lv}/${upg.maxLevel}</span></div><div class="shop-desc">${upg.desc}</div><div class="lvbars">${bars}</div></div>`;
     d.appendChild(btn);
     shopEl.appendChild(d);
   }
@@ -308,15 +276,70 @@ function showEffectToast(item){
 // Tab switching
 document.getElementById('tab-slot').addEventListener('click',()=>switchTab('slot'));
 document.getElementById('tab-shop').addEventListener('click',()=>switchTab('shop'));
-document.getElementById('tab-rank').addEventListener('click',()=>switchTab('rank'));
+document.getElementById('tab-upg').addEventListener('click',()=>switchTab('upg'));
 
 function switchTab(tab){
-  ['slot','shop','rank'].forEach(t=>{
+  ['slot','shop','upg'].forEach(t=>{
     document.getElementById('tab-'+t).classList.toggle('active',t===tab);
     document.getElementById(t+'-view').classList.toggle('hidden',t!==tab);
   });
   if(tab==='shop') buildShop();
-  if(tab==='rank') buildRank();
+  if(tab==='upg') buildUpgradeTab();
+}
+
+function buildUpgradeTab(){
+  const el=document.getElementById('upg-content');
+  el.innerHTML='';
+  for(const upg of UPGRADES){
+    const lv=game.upgradeLevels[upg.id]||0;
+    const maxed=lv>=upg.maxLevel;
+    const price=upgradePrice(upg,lv);
+    const canAfford=game.balance>=price;
+    const multBonus = 1+(game.upgradeLevels['up_match_mult']||0)*0.20;
+    const valBonus  = 1+(game.upgradeLevels['up_sym_val']||0)*0.15;
+    const scatterBonus=1+(game.upgradeLevels['up_scatter_bonus']||0)*0.25;
+    const megaBonus=1+(game.upgradeLevels['up_mega_jackpot']||0)*0.30;
+    const wildPow=game.upgradeLevels['up_wild_power']||0;
+    const statMap={
+      up_match_mult:`배율 ×${multBonus.toFixed(2)}`,
+      up_sym_val:`심볼가치 ×${valBonus.toFixed(2)}`,
+      up_scatter_bonus:`스캐터 ×${scatterBonus.toFixed(2)}`,
+      up_mega_jackpot:`MEGA ×${megaBonus.toFixed(2)}`,
+      up_wild_power:`WILD +${wildPow}카운트`,
+    };
+    const bars=Array.from({length:upg.maxLevel},(_,i)=>
+      `<span class="lvbar${i<lv?' filled':''}"></span>`).join('');
+    const d=document.createElement('div');
+    d.className='upg-card'+(maxed?' maxed':'');
+    const btn=document.createElement('button');
+    btn.className='shop-btn'+(maxed?' owned':canAfford?'':' poor');
+    btn.dataset.upg=upg.id;
+    btn.disabled=maxed;
+    btn.textContent=maxed?'MAX':'💰'+price;
+    d.innerHTML=`
+      <div class="upg-head">
+        <span class="upg-icon">${upg.e}</span>
+        <div class="upg-meta">
+          <div class="upg-name">${upg.name}</div>
+          <div class="upg-stat">${statMap[upg.id]}</div>
+          <div class="lvbars">${bars}</div>
+        </div>
+      </div>
+      <div class="upg-desc">${upg.desc}</div>`;
+    d.appendChild(btn);
+    el.appendChild(d);
+  }
+  el.querySelectorAll('[data-upg]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const id=btn.dataset.upg;
+      const upg=UPGRADES.find(u=>u.id===id);
+      if(game.buyUpgrade(id)){
+        updateBalance();
+        buildUpgradeTab();
+        showUpgradePopup(upg,game.upgradeLevels[id]);
+      }
+    });
+  });
 }
 
 async function buildRank(){
