@@ -54,9 +54,32 @@ function buildPaytable(){
 }
 buildPaytable();
 
-// SHOP
+// SHOP — event delegation on container
+const shopEl=document.getElementById('shop-content');
+shopEl.addEventListener('click',e=>{
+  const btn=e.target.closest('button[data-perm],button[data-con]');
+  if(!btn||btn.disabled) return;
+  if(btn.dataset.perm){
+    const id=btn.dataset.perm;
+    const item=PERMANENT_ITEMS.find(i=>i.id===id);
+    if(game.unlockSymbol(id)){
+      updateBalance();
+      buildShop();
+      buildPaytable();
+      showUnlockPopup(SYM[item.sym], item.desc);
+    }
+  } else if(btn.dataset.con){
+    const id=btn.dataset.con;
+    const item=CONSUMABLE_ITEMS.find(i=>i.id===id);
+    if(game.buyConsumable(id)){
+      updateBalance();
+      buildShop();
+      showConBuyPopup(item);
+    }
+  }
+});
+
 function buildShop(){
-  const shopEl=document.getElementById('shop-content');
   shopEl.innerHTML='';
 
   const h1=document.createElement('div');
@@ -69,16 +92,13 @@ function buildShop(){
     const canAfford=game.balance>=item.price;
     const d=document.createElement('div');
     d.className='shop-item'+(owned?' shop-owned':'');
-    d.innerHTML=`
-      <span class="shop-emoji">${sym.e}</span>
-      <div class="shop-info">
-        <div class="shop-name">${sym.name}</div>
-        <div class="shop-desc">${item.desc}</div>
-      </div>
-      <button class="shop-btn${owned?' owned':canAfford?'':' poor'}"
-        data-perm="${item.id}" ${owned?'disabled':''}>
-        ${owned?'보유중':'💰'+item.price}
-      </button>`;
+    const btn=document.createElement('button');
+    btn.className='shop-btn'+(owned?' owned':canAfford?'':' poor');
+    btn.dataset.perm=item.id;
+    btn.disabled=owned;
+    btn.textContent=owned?'보유중':'💰'+item.price;
+    d.innerHTML=`<span class="shop-emoji">${sym.e}</span><div class="shop-info"><div class="shop-name">${sym.name}</div><div class="shop-desc">${item.desc}</div></div>`;
+    d.appendChild(btn);
     shopEl.appendChild(d);
   }
 
@@ -91,42 +111,14 @@ function buildShop(){
     const canAfford=game.balance>=item.price;
     const d=document.createElement('div');
     d.className='shop-item';
-    d.innerHTML=`
-      <span class="shop-emoji">${item.e}</span>
-      <div class="shop-info">
-        <div class="shop-name">${item.name}${count>0?` <span class="own-count">×${count}</span>`:''}</div>
-        <div class="shop-desc">${item.desc}</div>
-      </div>
-      <button class="shop-btn${canAfford?'':' poor'}" data-con="${item.id}">
-        💰${item.price}
-      </button>`;
+    const btn=document.createElement('button');
+    btn.className='shop-btn'+(canAfford?'':' poor');
+    btn.dataset.con=item.id;
+    btn.textContent='💰'+item.price;
+    d.innerHTML=`<span class="shop-emoji">${item.e}</span><div class="shop-info"><div class="shop-name">${item.name}${count>0?` <span class="own-count">×${count}</span>`:''}</div><div class="shop-desc">${item.desc}</div></div>`;
+    d.appendChild(btn);
     shopEl.appendChild(d);
   }
-
-  shopEl.querySelectorAll('[data-perm]').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      const id=btn.dataset.perm;
-      const item=PERMANENT_ITEMS.find(i=>i.id===id);
-      if(game.unlockSymbol(id)){
-        updateBalance();
-        buildShop();
-        buildPaytable();
-        showUnlockPopup(SYM[item.sym], item.desc);
-      }
-    });
-  });
-
-  shopEl.querySelectorAll('[data-con]').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      const id=btn.dataset.con;
-      const item=CONSUMABLE_ITEMS.find(i=>i.id===id);
-      if(game.buyConsumable(id)){
-        updateBalance();
-        buildShop();
-        showConBuyPopup(item);
-      }
-    });
-  });
 }
 
 // Consumable inventory bar
