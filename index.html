@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>REIN — City RL Simulation</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+  <title>REIN — Traffic Fine Simulation</title>
   <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/controls/OrbitControls.js"></script>
   <link rel="stylesheet" href="css/style.css">
@@ -14,7 +13,7 @@
     <div id="sidebar">
       <div class="brand">
         <div class="brand-title">REIN</div>
-        <div class="brand-sub">Reinforcement City Sim</div>
+        <div class="brand-sub">Traffic Fine Simulation</div>
       </div>
 
       <div class="section">
@@ -27,32 +26,33 @@
 
       <div class="section">
         <div class="slider-row">
-          <label>Speed <span id="lblSpeed">5&#215;</span></label>
-          <input type="range" id="sldSpeed" min="1" max="40" value="5">
+          <label>Speed <span id="lblSpeed">1&#215;</span></label>
+          <input type="range" id="sldSpeed" min="1" max="10" value="1">
         </div>
         <div class="slider-row">
-          <label>Population <span id="lblPop">30</span></label>
-          <input type="range" id="sldPop" min="5" max="80" value="30">
+          <label>&#x1F697; Cars <span id="lblCars">20</span></label>
+          <input type="range" id="sldCars" min="5" max="60" value="20">
+        </div>
+        <div class="slider-row">
+          <label>&#x1F46E; Police <span id="lblPolice">3</span></label>
+          <input type="range" id="sldPolice" min="1" max="10" value="3">
         </div>
       </div>
 
       <div class="section">
-        <div class="section-title">STATS</div>
-        <div class="stat"><span>Tick</span><span id="sTick">0</span></div>
-        <div class="stat"><span>Alive</span><span id="sAlive">0</span></div>
-        <div class="stat"><span>Deaths</span><span id="sDeaths">0</span></div>
-        <div class="stat"><span>Avg Lifespan</span><span id="sLife">&#8212;</span></div>
-        <div class="stat"><span>Generation</span><span id="sGen">1</span></div>
-        <div class="stat"><span>Epsilon &#949;</span><span id="sEps">1.000</span></div>
-        <div class="stat"><span>Memory</span><span id="sMem">0</span></div>
+        <div class="section-title">&#x1F6A8; 단속 현황</div>
+        <div class="stat"><span>총 단속 건수</span><span id="sTotalFines">0건</span></div>
+        <div class="stat"><span>총 징수 벌금</span><span id="sFineAmount">0원</span></div>
+        <div class="stat"><span>과속 단속</span><span id="sSpeedFines">0건</span></div>
+        <div class="stat"><span>신호위반 단속</span><span id="sRedFines">0건</span></div>
+        <div class="stat"><span>경찰 단속수</span><span id="sPolFines">0건</span></div>
       </div>
 
       <div class="section">
-        <div class="section-title">AVG NEEDS</div>
-        <div class="bar-row"><span>Hunger</span><div class="bar"><div id="bHunger" class="bfill c-food"></div></div></div>
-        <div class="bar-row"><span>Health</span><div class="bar"><div id="bHealth" class="bfill c-hosp"></div></div></div>
-        <div class="bar-row"><span>Happy</span><div class="bar"><div id="bHappy" class="bfill c-park"></div></div></div>
-        <div class="bar-row"><span>Energy</span><div class="bar"><div id="bEnergy" class="bfill c-work"></div></div></div>
+        <div class="section-title">&#x1F4CA; 실시간 현황</div>
+        <div class="stat"><span>시민 평균 재산</span><span id="sAvgMoney">0원</span></div>
+        <div class="stat"><span>과속 중</span><span id="sSpeeders">0/0</span></div>
+        <div class="stat"><span>신호위반 중</span><span id="sRedNow">0/0</span></div>
       </div>
 
       <div class="section">
@@ -64,22 +64,19 @@
 
       <div class="section">
         <div class="section-title">LEGEND</div>
-        <div class="legend-item"><i class="dot" style="background:#c0392b"></i>Home</div>
-        <div class="legend-item"><i class="dot" style="background:#e67e22"></i>Restaurant</div>
-        <div class="legend-item"><i class="dot" style="background:#27ae60"></i>Park</div>
-        <div class="legend-item"><i class="dot" style="background:#2980b9"></i>Hospital</div>
-        <div class="legend-item"><i class="dot" style="background:#8e44ad"></i>Workplace</div>
-        <div class="legend-item"><i class="dot" style="background:#55ff55"></i>Person (healthy)</div>
-        <div class="legend-item"><i class="dot" style="background:#ff3333"></i>Person (critical)</div>
+        <div class="legend-item"><i class="dot" style="background:#0044cc"></i>경찰차</div>
+        <div class="legend-item"><i class="dot" style="background:#ff4400"></i>과속 차량</div>
+        <div class="legend-item"><i class="dot" style="background:#ff0000"></i>신호위반 차량</div>
+        <div class="legend-item"><i class="dot" style="background:#00ff44"></i>신호 (Green)</div>
+        <div class="legend-item"><i class="dot" style="background:#ff2200"></i>신호 (Red)</div>
       </div>
     </div>
 
     <div id="view"></div>
   </div>
 
-  <script src="js/city.js"></script>
-  <script src="js/agent.js"></script>
-  <script src="js/dqn.js"></script>
+  <script src="js/road.js"></script>
+  <script src="js/car.js"></script>
   <script src="js/simulation.js"></script>
   <script src="js/main.js"></script>
 </body>

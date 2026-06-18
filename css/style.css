@@ -35,13 +35,13 @@ body {
   color: var(--accent);
   letter-spacing: 8px;
 }
-.brand-sub { font-size: .63em; color: var(--dim); letter-spacing: 2px; }
+.brand-sub { font-size: .63em; color: var(--dim); letter-spacing: 1px; }
 
 .section { border-top: 1px solid var(--border); padding-top: 10px; }
 .section-title {
   font-size: .63em;
   color: var(--accent);
-  letter-spacing: 3px;
+  letter-spacing: 2px;
   margin-bottom: 8px;
 }
 
@@ -80,28 +80,6 @@ input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
 }
 .stat span:last-child { color: var(--text); font-weight: bold; }
 
-.bar-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 5px;
-  font-size: .7em;
-  color: var(--dim);
-}
-.bar-row > span { width: 48px; }
-.bar {
-  flex: 1;
-  height: 7px;
-  background: #111130;
-  border-radius: 3px;
-  overflow: hidden;
-}
-.bfill { height: 100%; border-radius: 3px; transition: width .4s; }
-.c-food { background: #e67e22; }
-.c-hosp { background: #e74c3c; }
-.c-park { background: #2ecc71; }
-.c-work { background: #3498db; }
-
 .hint { font-size: .68em; color: var(--dim); margin-bottom: 3px; }
 
 .legend-item {
@@ -120,9 +98,5 @@ input[type=range] { width: 100%; accent-color: var(--accent); cursor: pointer; }
   flex-shrink: 0;
 }
 
-#view {
-  flex: 1;
-  overflow: hidden;
-  background: var(--bg);
-}
+#view { flex: 1; overflow: hidden; background: var(--bg); }
 #view canvas { display: block; }
