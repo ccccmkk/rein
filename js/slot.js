@@ -17,21 +17,21 @@ const ALL_SYMBOLS = [
 const SYM = Object.fromEntries(ALL_SYMBOLS.map(s=>[s.id,s]));
 
 const PERMANENT_ITEMS = [
-  {id:'unlock_bell',   sym:'bell',    price:300,  desc:'벨 심볼 추가 (배율 높음)'},
-  {id:'unlock_star',   sym:'star',    price:600,  desc:'별 심볼 추가 (희귀)'},
-  {id:'unlock_diamond',sym:'diamond', price:1200, desc:'다이아 심볼 추가 (고배율)'},
-  {id:'unlock_money',  sym:'money',   price:2500, desc:'머니백 심볼 추가 (초고배율)'},
-  {id:'unlock_crown',  sym:'crown',   price:5000, desc:'왕관 심볼 추가 (최고배율)'},
-  {id:'unlock_wild',   sym:'wild',    price:800,  desc:'WILD 심볼 추가 - 모든 심볼 대체'},
-  {id:'unlock_bomb',   sym:'bomb',    price:1500, desc:'BOMB 심볼 추가 - 등장시 500~1500 보너스'},
-  {id:'unlock_double', sym:'double',  price:2000, desc:'⚡ 심볼 추가 - 라인 당첨 2배'},
-  {id:'unlock_gift',   sym:'gift',    price:3000, desc:'선물 심볼 추가 - 등장시 500~3000 보너스'},
-  {id:'unlock_mega',   sym:'mega',    price:8000, desc:'🌟 MEGA 심볼 추가 - 3개↑ 등장시 잭팟!'},
+  {id:'unlock_bell',   sym:'bell',    price:800,   desc:'벨 심볼 추가 (배율 높음)'},
+  {id:'unlock_star',   sym:'star',    price:2000,  desc:'별 심볼 추가 (희귀)'},
+  {id:'unlock_diamond',sym:'diamond', price:5000,  desc:'다이아 심볼 추가 (고배율)'},
+  {id:'unlock_money',  sym:'money',   price:12000, desc:'머니백 심볼 추가 (초고배율)'},
+  {id:'unlock_crown',  sym:'crown',   price:30000, desc:'왕관 심볼 추가 (최고배율)'},
+  {id:'unlock_wild',   sym:'wild',    price:3000,  desc:'WILD 심볼 추가 - 모든 심볼 대체'},
+  {id:'unlock_bomb',   sym:'bomb',    price:6000,  desc:'BOMB 심볼 추가 - 등장시 500~1500 보너스'},
+  {id:'unlock_double', sym:'double',  price:8000,  desc:'⚡ 심볼 추가 - 라인 당첨 2배'},
+  {id:'unlock_gift',   sym:'gift',    price:18000, desc:'선물 심볼 추가 - 등장시 500~3000 보너스'},
+  {id:'unlock_mega',   sym:'mega',    price:50000, desc:'🌟 MEGA 심볼 추가 - 3개↑ 등장시 잭팟!'},
 ];
 
 const GRID_ITEMS = [
-  {id:'grid_4x4', size:4, price:1500,  e:'🔲', name:'4×4 그리드', desc:'4×4 그리드 해금 — 더 많은 라인'},
-  {id:'grid_5x5', size:5, price:5000,  e:'🔳', name:'5×5 그리드', desc:'5×5 그리드 해금 — 최대 스케일'},
+  {id:'grid_4x4', size:4, price:5000,  e:'🔲', name:'4×4 그리드', desc:'4×4 그리드 해금 — 더 많은 라인'},
+  {id:'grid_5x5', size:5, price:20000, e:'🔳', name:'5×5 그리드', desc:'5×5 그리드 해금 — 최대 스케일'},
 ];
 
 const CONSUMABLE_ITEMS = [
@@ -124,6 +124,7 @@ class SlotGame{
     this.loseStreak=0;
     this.freeSpin=false;
     this.pendingMilestone=null;
+    this.maxCoins=1000;
     this._rebuildPool();
     this._resetGrid();
     this.spinning=false;
@@ -423,6 +424,7 @@ class SlotGame{
     const total=Math.round(symWin+scatterWin+fruitBonus+chargeBonus+bingoBonus);
     if(shielded&&total===0) this.balance+=this.bet;
     this.balance+=total;
+    if(this.balance>this.maxCoins) this.maxCoins=this.balance;
 
     if(total>0){ this.winStreak++; this.loseStreak=0; }
     else { this.loseStreak++; this.winStreak=0; }
@@ -438,8 +440,8 @@ class SlotGame{
       total,doubleActive,multiplier,shielded};
   }
 
-  save(){
-    const state={
+  getState(){
+    return {
       balance:this.balance,
       gridSize:this.gridSize,
       unlockedGridSizes:[...this.unlockedGridSizes],
@@ -455,32 +457,38 @@ class SlotGame{
       loseStreak:this.loseStreak,
       freeSpin:this.freeSpin,
       history:this.history,
+      maxCoins:this.maxCoins,
     };
-    try{ localStorage.setItem('rein_save',JSON.stringify(state)); }catch(e){}
   }
+
+  applyState(s){
+    this.balance=s.balance??1000;
+    this.gridSize=s.gridSize??3;
+    this.unlockedGridSizes=new Set(s.unlockedGridSizes??[3]);
+    this.unlockedSymIds=new Set(s.unlockedSymIds??['cherry','lemon','orange','grape']);
+    this.ownedConsumables=s.ownedConsumables??{};
+    this.upgradeLevels=s.upgradeLevels??{};
+    this.bingoPurchased=s.bingoPurchased??false;
+    this.spinCount=s.spinCount??0;
+    this.activePerks=s.activePerks??[];
+    this.weightBoosts=s.weightBoosts??{};
+    this.extraSymVal=s.extraSymVal??0;
+    this.winStreak=s.winStreak??0;
+    this.loseStreak=s.loseStreak??0;
+    this.freeSpin=s.freeSpin??false;
+    this.history=s.history??[];
+    this.maxCoins=s.maxCoins??this.balance;
+    this._rebuildPool();
+    this._resetGrid();
+  }
+
+  save(){ try{ localStorage.setItem('rein_save',JSON.stringify(this.getState())); }catch(e){} }
 
   load(){
     try{
       const raw=localStorage.getItem('rein_save');
       if(!raw) return false;
-      const s=JSON.parse(raw);
-      this.balance=s.balance??1000;
-      this.gridSize=s.gridSize??3;
-      this.unlockedGridSizes=new Set(s.unlockedGridSizes??[3]);
-      this.unlockedSymIds=new Set(s.unlockedSymIds??['cherry','lemon','orange','grape']);
-      this.ownedConsumables=s.ownedConsumables??{};
-      this.upgradeLevels=s.upgradeLevels??{};
-      this.bingoPurchased=s.bingoPurchased??false;
-      this.spinCount=s.spinCount??0;
-      this.activePerks=s.activePerks??[];
-      this.weightBoosts=s.weightBoosts??{};
-      this.extraSymVal=s.extraSymVal??0;
-      this.winStreak=s.winStreak??0;
-      this.loseStreak=s.loseStreak??0;
-      this.freeSpin=s.freeSpin??false;
-      this.history=s.history??[];
-      this._rebuildPool();
-      this._resetGrid();
+      this.applyState(JSON.parse(raw));
       return true;
     }catch(e){ return false; }
   }

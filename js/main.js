@@ -1,13 +1,36 @@
 const game=new SlotGame();
-game.load(); // auto-load save on start
+game.load(); // localStorage fallback on start
 
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 
-// Nickname
+// Server save (async, non-blocking)
+function serverSave(){
+  if(!playerNick) return;
+  saveGameState(playerNick, game.getState()).catch(()=>{});
+}
+
+// Nickname + server load
 let playerNick=localStorage.getItem('rein_nick')||'';
 
+async function onNickConfirmed(){
+  updateNickDisplay();
+  // Try server load
+  const serverState=await loadGameState(playerNick);
+  if(serverState && serverState.spinCount > game.spinCount){
+    game.applyState(serverState);
+    game.save();
+    buildGrid(); renderGrid(); buildPaytable();
+    buildConsumableBar(); updateBalance(); updateSpinCounter(); updateHistory();
+    showToastMsg('☁️ 서버에서 불러옴!');
+  }
+}
+
 function initNickname(){
-  if(playerNick){ document.getElementById('nick-modal').classList.add('hidden'); updateNickDisplay(); return; }
+  if(playerNick){
+    document.getElementById('nick-modal').classList.add('hidden');
+    onNickConfirmed();
+    return;
+  }
   const modal=document.getElementById('nick-modal');
   const input=document.getElementById('nick-input');
   const okBtn=document.getElementById('nick-ok');
@@ -19,7 +42,7 @@ function initNickname(){
     playerNick=v;
     localStorage.setItem('rein_nick',v);
     modal.classList.add('hidden');
-    updateNickDisplay();
+    onNickConfirmed();
   };
   okBtn.addEventListener('click',confirm);
   input.addEventListener('keydown',e=>{ if(e.key==='Enter') confirm(); });
@@ -28,11 +51,6 @@ function initNickname(){
 function updateNickDisplay(){
   const el=document.getElementById('player-nick');
   if(el) el.textContent=playerNick;
-}
-
-async function submitScore(){
-  if(!playerNick) return;
-  await saveScore(playerNick,game.balance);
 }
 
 initNickname();
@@ -110,26 +128,25 @@ const shopEl=document.getElementById('shop-content');
 shopEl.addEventListener('click',e=>{
   const btn=e.target.closest('button[data-perm],button[data-con],button[data-grid],button[data-bingo]');
   if(!btn||btn.disabled) return;
+  const persist=()=>{ game.save(); serverSave(); };
   if(btn.dataset.bingo){
     const id=btn.dataset.bingo;
     const item=BINGO_ITEMS.find(i=>i.id===id);
-    if(game.buyBingo(id)){ updateBalance();buildShop();showUnlockPopup(item,item.desc);game.save(); }
+    if(game.buyBingo(id)){ updateBalance();buildShop();showUnlockPopup(item,item.desc);persist(); }
   } else if(btn.dataset.perm){
     const id=btn.dataset.perm;
     const item=PERMANENT_ITEMS.find(i=>i.id===id);
-    if(game.unlockSymbol(id)){ updateBalance();buildShop();buildPaytable();showUnlockPopup(SYM[item.sym],item.desc);game.save(); }
+    if(game.unlockSymbol(id)){ updateBalance();buildShop();buildPaytable();showUnlockPopup(SYM[item.sym],item.desc);persist(); }
   } else if(btn.dataset.con){
     const id=btn.dataset.con;
     const item=CONSUMABLE_ITEMS.find(i=>i.id===id);
-    if(game.buyConsumable(id)){ updateBalance();buildShop();buildConsumableBar();showConBuyPopup(item);game.save(); }
+    if(game.buyConsumable(id)){ updateBalance();buildShop();buildConsumableBar();showConBuyPopup(item);persist(); }
   } else if(btn.dataset.grid){
     const id=btn.dataset.grid;
     const item=GRID_ITEMS.find(i=>i.id===id);
     if(game.buyGridItem(id)){
-      updateBalance();buildShop();
-      buildGrid();renderGrid(); // auto-switch grid
-      showUnlockPopup({e:item.e,name:item.name},item.desc);
-      game.save();
+      updateBalance();buildShop();buildGrid();renderGrid();
+      showUnlockPopup({e:item.e,name:item.name},item.desc);persist();
     }
   }
 });
@@ -312,14 +329,38 @@ function buildMultModal(){
 document.getElementById('tab-slot').addEventListener('click',()=>switchTab('slot'));
 document.getElementById('tab-shop').addEventListener('click',()=>switchTab('shop'));
 document.getElementById('tab-upg').addEventListener('click',()=>switchTab('upg'));
+document.getElementById('tab-rank').addEventListener('click',()=>switchTab('rank'));
 
 function switchTab(tab){
-  ['slot','shop','upg'].forEach(t=>{
+  ['slot','shop','upg','rank'].forEach(t=>{
     document.getElementById('tab-'+t).classList.toggle('active',t===tab);
     document.getElementById(t+'-view').classList.toggle('hidden',t!==tab);
   });
   if(tab==='shop') buildShop();
   if(tab==='upg') buildUpgradeTab();
+  if(tab==='rank') buildRank();
+}
+
+async function buildRank(){
+  const el=document.getElementById('rank-content');
+  el.innerHTML='<div class="rank-loading">로딩 중...</div>';
+  const rows=await getLeaderboard();
+  if(!rows||!rows.length){ el.innerHTML='<div class="rank-loading">데이터 없음</div>'; return; }
+  let html='<div class="rank-title">🏆 LEADERBOARD — 최대 코인 기준</div>';
+  html+='<div class="rank-header"><span class="rank-pos">#</span><span class="rank-nick">닉네임</span><span class="rank-col">최대코인</span><span class="rank-col">현재</span><span class="rank-col">횟수</span></div>';
+  rows.forEach((row,i)=>{
+    const isMe=row.nickname===playerNick;
+    const medals=['🥇','🥈','🥉'];
+    const pos=medals[i]||(i+1)+'';
+    html+=`<div class="rank-row${isMe?' rank-me':''}">
+      <span class="rank-pos">${pos}</span>
+      <span class="rank-nick">${row.nickname}</span>
+      <span class="rank-col rank-max">${(row.max_coins||0).toLocaleString()}</span>
+      <span class="rank-col rank-bal">${(row.balance||0).toLocaleString()}</span>
+      <span class="rank-col rank-spins">${(row.spin_count||0).toLocaleString()}</span>
+    </div>`;
+  });
+  el.innerHTML=html;
 }
 
 function buildUpgradeTab(){
@@ -454,7 +495,8 @@ async function doSpin(){
 
   await delay(450);
   const result=game.resolve();
-  game.save(); // auto-save after every spin
+  game.save();     // localStorage (fast)
+  serverSave();    // Supabase (async)
 
   await revealWinsSequentially(result);
 
