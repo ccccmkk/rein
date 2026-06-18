@@ -1,18 +1,16 @@
-const VERSION = 'v21';
+const VERSION = 'v22';
 const CACHE = 'rein-' + VERSION;
-const ASSETS = [
-  '/rein/',
-  '/rein/index.html',
-  '/rein/css/style.css',
-  '/rein/js/slot.js',
-  '/rein/js/main.js',
+
+// Only cache static assets that never change (icons, manifest)
+// JS/CSS are always fetched fresh from network
+const STATIC_ASSETS = [
   '/rein/manifest.json',
   '/rein/icon.svg',
 ];
 
 self.addEventListener('install', e => {
   e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())
+    caches.open(CACHE).then(c => c.addAll(STATIC_ASSETS)).then(() => self.skipWaiting())
   );
 });
 
@@ -25,11 +23,14 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  e.respondWith(
-    fetch(e.request).then(res => {
-      const clone = res.clone();
-      caches.open(CACHE).then(c => c.put(e.request, clone));
-      return res;
-    }).catch(() => caches.match(e.request))
-  );
+  const url = new URL(e.request.url);
+  const isStatic = url.pathname.endsWith('.svg') || url.pathname.endsWith('manifest.json');
+
+  if (isStatic) {
+    // Cache-first for icons/manifest
+    e.respondWith(
+      caches.match(e.request).then(cached => cached || fetch(e.request))
+    );
+  }
+  // JS/CSS/HTML: no interception — browser fetches directly from network
 });
