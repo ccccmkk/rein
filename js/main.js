@@ -360,6 +360,26 @@ function switchTab(tab){
 function buildUpgradeTab(){
   const el=document.getElementById('upg-content');
   el.innerHTML='';
+
+  // Active perks section
+  if(game.activePerks.length>0){
+    const h=document.createElement('div');
+    h.className='shop-section-title';h.textContent='🎯 특수 능력 (로그라이크)';
+    el.appendChild(h);
+    const wrap=document.createElement('div');
+    wrap.className='perks-wrap';
+    game.activePerks.forEach(pid=>{
+      const perk=MILESTONE_PERKS.find(p=>p.id===pid);
+      if(!perk) return;
+      const d=document.createElement('div');
+      d.className='perk-chip';
+      d.innerHTML=`<span class="perk-chip-e">${perk.e}</span><span class="perk-chip-name">${perk.name}</span>`;
+      d.title=perk.desc;
+      wrap.appendChild(d);
+    });
+    el.appendChild(wrap);
+    const spacer=document.createElement('div');spacer.style.height='8px';el.appendChild(spacer);
+  }
   for(const upg of UPGRADES){
     const lv=game.upgradeLevels[upg.id]||0;
     const maxed=lv>=upg.maxLevel;
@@ -436,11 +456,16 @@ async function buildRank(){
   });
 }
 
-// Bet controls
-document.getElementById('betDown').addEventListener('click',()=>{game.betDown();updateBet();});
-document.getElementById('betUp').addEventListener('click',()=>{game.betUp();updateBet();});
-function updateBet(){document.getElementById('betVal').textContent=game.bet;}
 function updateBalance(){document.getElementById('balance').textContent=game.balance.toLocaleString();}
+function updateSpinCounter(){
+  const el=document.getElementById('spin-counter');
+  if(!el) return;
+  const n=game.spinCount;
+  const next=MILESTONES.find(m=>m>n)||null;
+  const parts=['SPIN '+n];
+  if(next) parts.push(`→ 🎯${next}`);
+  el.textContent=parts.join('  ');
+}
 
 // LEVER
 const lever=document.getElementById('lever');
@@ -469,8 +494,9 @@ async function doSpin(){
   const usedItem=game.activatePendingConsumable();
   if(usedItem) buildConsumableBar();
 
-  const grid=game.spin();
+  const {grid, wasFree}=game.spin();
   updateBalance();
+  updateSpinCounter();
 
   const emojis=getActiveEmojis();
   const ivs=cellEls.map(row=>row.map(el=>{
@@ -500,6 +526,11 @@ async function doSpin(){
   updateHistory();
   buildConsumableBar();
   game.spinning=false;
+
+  // Show milestone perk picker if needed
+  if(game.pendingMilestone){
+    showMilestoneModal(game.pendingMilestone);
+  }
 }
 
 // Build sorted reveal list: sym wins (low→high payout) then scatters then specials
@@ -587,6 +618,29 @@ async function revealWinsSequentially(result){
     wlEl.scrollLeft=wlEl.scrollWidth;
   }
 
+  // Perk bonuses
+  if(result.chargeBonus>0){
+    await delay(700);
+    const tag=document.createElement('span');
+    tag.className='wl-item wl-perk wl-reveal';
+    tag.textContent=`⚡ 패배 충전 +${result.chargeBonus}`;
+    wlEl.appendChild(tag); wlEl.scrollLeft=wlEl.scrollWidth;
+  }
+  if(result.streakBonus>0){
+    await delay(700);
+    const tag=document.createElement('span');
+    tag.className='wl-item wl-perk wl-reveal';
+    tag.textContent=`🔥 연승 보너스 +${result.streakBonus}`;
+    wlEl.appendChild(tag); wlEl.scrollLeft=wlEl.scrollWidth;
+  }
+  if(result.fruitBonus>0){
+    await delay(700);
+    const tag=document.createElement('span');
+    tag.className='wl-item wl-perk wl-reveal';
+    tag.textContent=`🍓 과일 콤보 +${result.fruitBonus}`;
+    wlEl.appendChild(tag); wlEl.scrollLeft=wlEl.scrollWidth;
+  }
+
   // Bingo bonus reveal
   if(result.bingoBonus>0){
     await delay(700);
@@ -623,9 +677,45 @@ async function showBannerFinal(result){
   const parts=[];
   if(result.symWin) parts.push('심볼: +'+result.symWin+(result.multiplier>1?` (×${result.multiplier})`:''));
   if(result.scatterWin) parts.push('스캐터: +'+result.scatterWin);
+  if(result.chargeBonus) parts.push('충전: +'+result.chargeBonus);
+  if(result.streakBonus) parts.push('연승: +'+result.streakBonus);
+  if(result.fruitBonus) parts.push('콤보: +'+result.fruitBonus);
   if(result.bingoBonus) parts.push('빙고: +'+result.bingoBonus);
   document.getElementById('wb-detail').textContent=parts.join(' / ');
   banner.classList.remove('hidden');
+}
+
+function showMilestoneModal(spinCount){
+  const modal=document.getElementById('milestone-modal');
+  const choices=game.getMilestoneChoices();
+  if(!choices.length){ game.pendingMilestone=null; return; }
+
+  document.getElementById('ms-title').textContent='🎯 '+spinCount+'회 달성!';
+  document.getElementById('ms-sub').textContent='특수 능력을 하나 선택하세요 — 영구 적용됩니다';
+
+  const perksEl=document.getElementById('ms-perks');
+  perksEl.innerHTML='';
+  choices.forEach(perk=>{
+    const card=document.createElement('div');
+    card.className='ms-perk-card';
+    card.innerHTML=`<div class="ms-perk-e">${perk.e}</div><div class="ms-perk-name">${perk.name}</div><div class="ms-perk-desc">${perk.desc}</div>`;
+    card.addEventListener('click',()=>{
+      game.choosePerk(perk.id);
+      modal.classList.add('hidden');
+      buildPaytable();
+      updateSpinCounter();
+      // Show what was chosen
+      showUnlockPopup({e:perk.e,name:perk.name},perk.desc);
+    });
+    perksEl.appendChild(card);
+  });
+
+  modal.classList.remove('hidden');
+}
+
+function buildActivePerks(){
+  // Show in the upg tab or slot view — for now, show in topbar or as a small banner
+  // We'll show in UPG tab
 }
 
 function showFireworks(){
@@ -664,10 +754,11 @@ function updateHistory(){
   const el=document.getElementById('history');
   el.innerHTML=game.history.map(h=>{
     const cls=h.win>0?'hi win':'hi lose';
-    const txt=h.win>0?`+${h.win}`:`-${h.bet}`;
+    const txt=h.win>0?`+${h.win}`:`-${game.bet}`;
     return `<span class="${cls}">${txt}</span>`;
   }).join('');
 }
 
 updateBalance();
+updateSpinCounter();
 buildConsumableBar();

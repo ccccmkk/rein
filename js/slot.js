@@ -38,60 +38,59 @@ const CONSUMABLE_ITEMS = [
   {id:'con_2x',      price:150,  name:'다음 스핀 2배',   e:'✖️',  desc:'다음 1회 스핀 당첨금 2배', effect:'double_spin'},
   {id:'con_lucky',   price:200,  name:'럭키 스핀',       e:'🍀',  desc:'다음 1회 스핀 심볼 가중치 +50% 상승', effect:'lucky'},
   {id:'con_jackpot', price:500,  name:'잭팟 부스터',     e:'🎰',  desc:'다음 스핀 MEGA 등장 확률 10배', effect:'jackpot_boost'},
-  {id:'con_shield',  price:100,  name:'배팅 보호',       e:'🛡️',  desc:'다음 1회 스핀 패배시 베팅 반환', effect:'shield'},
+  {id:'con_shield',  price:100,  name:'스핀 보호',       e:'🛡️',  desc:'다음 1회 스핀 패배시 10코인 반환', effect:'shield'},
 ];
 
 const BINGO_ITEMS = [
   {id:'bingo_basic', price:1800, e:'🎯', name:'빙고 시스템', desc:'완전한 라인(전체 칸 일치) 달성 시 빙고 보너스 지급'},
 ];
 
-// Upgrades: each level increases effect, price scales up
+// Roguelike milestone perks — chosen at 10 / 100 / 1000 spins
+const MILESTONE_PERKS = [
+  {id:'rm_cherry',    e:'🍒', name:'체리 절멸',    desc:'체리를 풀에서 영구 제거 → 상위 심볼 확률 UP', type:'remove_sym', sym:'cherry'},
+  {id:'rm_lemon',     e:'🍋', name:'레몬 절멸',    desc:'레몬을 풀에서 영구 제거 → 상위 심볼 확률 UP', type:'remove_sym', sym:'lemon'},
+  {id:'rm_orange',    e:'🍊', name:'오렌지 절멸',  desc:'오렌지를 풀에서 영구 제거 → 상위 심볼 확률 UP', type:'remove_sym', sym:'orange'},
+  {id:'rm_grape',     e:'🍇', name:'포도 절멸',    desc:'포도를 풀에서 영구 제거 → 상위 심볼 확률 UP', type:'remove_sym', sym:'grape'},
+  {id:'wild_magnet',  e:'🧲', name:'WILD 자석',    desc:'WILD 등장 확률 3배 증가', type:'wild_weight', req_sym:'wild'},
+  {id:'diag_boost',   e:'↗️', name:'대각선 강화',  desc:'대각선 라인 당첨 배율 ×2', type:'diag_boost'},
+  {id:'scatter_max',  e:'💥', name:'스캐터 맥스',  desc:'BOMB·선물 보너스 항상 최대치 지급', type:'scatter_max'},
+  {id:'streak_bonus', e:'🔥', name:'연승 보너스',  desc:'3연속 당첨시 당첨금 +50%', type:'streak'},
+  {id:'losing_charge',e:'⚡', name:'패배 충전',    desc:'연속 패배마다 다음 당첨금 +20% 누적 (최대 ×3)', type:'losing_charge'},
+  {id:'fruit_combo',  e:'🍓', name:'과일 콤보',    desc:'4종류 과일 동시 등장시 +80코인 보너스', type:'fruit_combo'},
+  {id:'mega_sense',   e:'👁️', name:'MEGA 감각',    desc:'MEGA 2개만 있어도 잭팟 절반 지급 + 등장 확률 ×2', type:'mega_sense', req_sym:'mega'},
+  {id:'free_spin',    e:'🆓', name:'완전 라인 무료',desc:'완전한 라인(N칸 전부 일치) 달성시 다음 스핀 무료', type:'free_spin'},
+  {id:'crown_power',  e:'👑', name:'왕관의 힘',    desc:'왕관 라인 당첨 배율 ×3', type:'crown_power', req_sym:'crown'},
+  {id:'bomb_chain',   e:'💣', name:'폭탄 연쇄',    desc:'BOMB 2개↑ 등장시 보너스 2배 추가 지급', type:'bomb_chain', req_sym:'bomb'},
+  {id:'sym_mirror',   e:'🪞', name:'심볼 미러',    desc:'모든 심볼 기본 val 영구 +3 추가', type:'sym_val_flat'},
+];
+
+const MILESTONES = [10, 100, 1000];
+
 const UPGRADES = [
   {
-    id:'up_match_mult',
-    name:'매치 배율 강화',
-    e:'⚡',
+    id:'up_match_mult', name:'매치 배율 강화', e:'⚡',
     desc:'3~8개 매치 배율 전체 +20%',
-    maxLevel:10,
-    basePrice:400,
-    priceScale:1.6,
-    // effect applied in resolve() via game.upgradeLevels
+    maxLevel:10, basePrice:400, priceScale:1.6,
   },
   {
-    id:'up_sym_val',
-    name:'심볼 가치 강화',
-    e:'💹',
+    id:'up_sym_val', name:'심볼 가치 강화', e:'💹',
     desc:'모든 심볼 기본 가치 +15%',
-    maxLevel:10,
-    basePrice:300,
-    priceScale:1.5,
+    maxLevel:10, basePrice:300, priceScale:1.5,
   },
   {
-    id:'up_scatter_bonus',
-    name:'스캐터 보너스 강화',
-    e:'💥',
+    id:'up_scatter_bonus', name:'스캐터 보너스 강화', e:'💥',
     desc:'BOMB·선물 스캐터 보너스 +25%',
-    maxLevel:8,
-    basePrice:500,
-    priceScale:1.7,
+    maxLevel:8, basePrice:500, priceScale:1.7,
   },
   {
-    id:'up_wild_power',
-    name:'WILD 파워 강화',
-    e:'🃏',
+    id:'up_wild_power', name:'WILD 파워 강화', e:'🃏',
     desc:'WILD 1개당 카운트 +1 추가',
-    maxLevel:5,
-    basePrice:800,
-    priceScale:2.0,
+    maxLevel:5, basePrice:800, priceScale:2.0,
   },
   {
-    id:'up_mega_jackpot',
-    name:'MEGA 잭팟 강화',
-    e:'🌟',
+    id:'up_mega_jackpot', name:'MEGA 잭팟 강화', e:'🌟',
     desc:'MEGA 잭팟 보너스 +30%',
-    maxLevel:6,
-    basePrice:1000,
-    priceScale:2.0,
+    maxLevel:6, basePrice:1000, priceScale:2.0,
   },
 ];
 
@@ -99,12 +98,10 @@ function upgradePrice(upg, currentLevel){
   return Math.round(upg.basePrice * Math.pow(upg.priceScale, currentLevel));
 }
 
-const BET_OPTIONS = [10,20,50,100,200,500];
-
 class SlotGame{
   constructor(){
     this.balance=1000;
-    this.betIdx=0;
+    this.bet=10; // fixed cost per spin
     this.gridSize=3;
     this.unlockedGridSizes=new Set([3]);
     this.unlockedSymIds=new Set(['cherry','lemon','orange','grape']);
@@ -113,6 +110,13 @@ class SlotGame{
     this.upgradeLevels={};
     this.bingoPurchased=false;
     this.pendingConsumable=null;
+    // Roguelike
+    this.spinCount=0;
+    this.activePerks=[];    // array of perk ids
+    this.winStreak=0;
+    this.loseStreak=0;
+    this.freeSpin=false;
+    this.pendingMilestone=null; // set when milestone reached, cleared after perk chosen
     this._rebuildPool();
     this._resetGrid();
     this.spinning=false;
@@ -131,19 +135,26 @@ class SlotGame{
 
   _randSym(){
     const jackpotBoost = this.activeEffects.has('jackpot_boost');
-    let r = Math.random() * (this._totalW + (jackpotBoost ? SYM['mega']?.w*9 || 0 : 0));
+    const wildMagnet = this.activePerks.includes('wild_magnet');
+    const megaSense = this.activePerks.includes('mega_sense');
+    // Build effective weights
+    let totalW = this._totalW;
+    if(jackpotBoost && this.unlockedSymIds.has('mega')) totalW += SYM['mega'].w*9;
+    if(wildMagnet && this.unlockedSymIds.has('wild')) totalW += SYM['wild'].w*2;
+    if(megaSense && this.unlockedSymIds.has('mega')) totalW += SYM['mega'].w;
+    let r = Math.random() * totalW;
     for(const s of this._pool){
-      const w = (jackpotBoost && s.id==='mega') ? s.w*10 : s.w;
+      let w = s.w;
+      if(jackpotBoost && s.id==='mega') w *= 10;
+      if(wildMagnet && s.id==='wild') w *= 3;
+      if(megaSense && s.id==='mega') w *= 2;
       r -= w;
       if(r<=0) return s.id;
     }
     return this._pool[0].id;
   }
 
-  get bet(){return BET_OPTIONS[this.betIdx];}
-  betUp(){if(this.betIdx<BET_OPTIONS.length-1)this.betIdx++;}
-  betDown(){if(this.betIdx>0)this.betIdx--;}
-  canSpin(){return !this.spinning&&this.balance>=this.bet;}
+  canSpin(){return !this.spinning&&(this.freeSpin||this.balance>=this.bet);}
 
   unlockSymbol(permItemId){
     const item = PERMANENT_ITEMS.find(i=>i.id===permItemId);
@@ -186,10 +197,7 @@ class SlotGame{
   }
 
   setPendingConsumable(conItemId){
-    if(this.pendingConsumable===conItemId){
-      this.pendingConsumable=null;
-      return 'cancelled';
-    }
+    if(this.pendingConsumable===conItemId){ this.pendingConsumable=null; return 'cancelled'; }
     if(!this.ownedConsumables[conItemId]) return false;
     this.pendingConsumable=conItemId;
     return 'set';
@@ -197,8 +205,7 @@ class SlotGame{
 
   activatePendingConsumable(){
     if(!this.pendingConsumable) return null;
-    const id=this.pendingConsumable;
-    this.pendingConsumable=null;
+    const id=this.pendingConsumable; this.pendingConsumable=null;
     const item=CONSUMABLE_ITEMS.find(i=>i.id===id);
     if(!item||!this.ownedConsumables[id]) return null;
     this.ownedConsumables[id]--;
@@ -219,69 +226,93 @@ class SlotGame{
     return true;
   }
 
-  useConsumable(conItemId){
-    if(!this.ownedConsumables[conItemId]) return false;
-    const item = CONSUMABLE_ITEMS.find(i=>i.id===conItemId);
-    if(!item) return false;
-    this.ownedConsumables[conItemId]--;
-    if(!this.ownedConsumables[conItemId]) delete this.ownedConsumables[conItemId];
-    this.activeEffects.add(item.effect);
+  // Milestone perk system
+  getMilestoneChoices(){
+    const available = MILESTONE_PERKS.filter(p=>{
+      if(this.activePerks.includes(p.id)) return false;
+      if(p.type==='remove_sym' && !this.unlockedSymIds.has(p.sym)) return false;
+      if(p.req_sym && !this.unlockedSymIds.has(p.req_sym)) return false;
+      return true;
+    });
+    // Shuffle and pick 3
+    const shuffled=[...available].sort(()=>Math.random()-.5);
+    return shuffled.slice(0,3);
+  }
+
+  choosePerk(perkId){
+    const perk=MILESTONE_PERKS.find(p=>p.id===perkId);
+    if(!perk) return false;
+    this.activePerks.push(perkId);
+    this.pendingMilestone=null;
+    // Immediate effects
+    if(perk.type==='remove_sym'){
+      this.unlockedSymIds.delete(perk.sym);
+      this._rebuildPool();
+    }
+    if(perk.type==='sym_val_flat'){
+      // +3 to all base vals in ALL_SYMBOLS (mutate)
+      ALL_SYMBOLS.forEach(s=>{ if(!s.special||s.special==='mega') s.val+=3; });
+    }
     return true;
   }
 
   spin(){
-    this.balance-=this.bet;
+    const wasFree=this.freeSpin;
+    if(!wasFree) this.balance-=this.bet;
+    this.freeSpin=false;
+    this.spinCount++;
     const n=this.gridSize;
     this.grid=Array.from({length:n},()=>Array.from({length:n},()=>this._randSym()));
-    return this.grid;
+    // Check milestone
+    if(MILESTONES.includes(this.spinCount) && this.getMilestoneChoices().length>0){
+      this.pendingMilestone=this.spinCount;
+    }
+    return {grid:this.grid, wasFree};
   }
 
   resolve(){
     const flat=this.grid.flat();
     const multBonus = 1 + (this.upgradeLevels['up_match_mult']||0)*0.20;
     const valBonus  = 1 + (this.upgradeLevels['up_sym_val']||0)*0.15;
-    const wildPowerBonus = this.upgradeLevels['up_wild_power']||0;
 
     const wins=[];
     const winCells=new Set();
-
     const n=this.gridSize;
 
-    // 체크할 라인들: 행 + 열 + 대각선 2개
     const lines=[];
     for(let r=0;r<n;r++){
-      lines.push({name:`${r+1}행`, coords:Array.from({length:n},(_,c)=>[r,c])});
+      lines.push({name:`${r+1}행`, isDiag:false, coords:Array.from({length:n},(_,c)=>[r,c])});
     }
     for(let c=0;c<n;c++){
-      lines.push({name:`${c+1}열`, coords:Array.from({length:n},(_,r)=>[r,c])});
+      lines.push({name:`${c+1}열`, isDiag:false, coords:Array.from({length:n},(_,r)=>[r,c])});
     }
-    lines.push({name:'↘대각', coords:Array.from({length:n},(_,i)=>[i,i])});
-    lines.push({name:'↙대각', coords:Array.from({length:n},(_,i)=>[i,n-1-i])});
+    lines.push({name:'↘대각', isDiag:true, coords:Array.from({length:n},(_,i)=>[i,i])});
+    lines.push({name:'↙대각', isDiag:true, coords:Array.from({length:n},(_,i)=>[i,n-1-i])});
+
+    const hasDiagBoost = this.activePerks.includes('diag_boost');
+    const hasCrownPower = this.activePerks.includes('crown_power');
 
     for(const line of lines){
       const coords=line.coords;
-      // 첫 번째 non-wild 심볼이 타겟
       let target=null;
       for(const [r,c] of coords){
         if(this.grid[r][c]!=='wild'){target=this.grid[r][c];break;}
       }
       if(!target) continue;
 
-      // 연속 체크
       const cells=[];
       for(const [r,c] of coords){
         const id=this.grid[r][c];
-        const isWild=id==='wild';
-        if(id===target||isWild){
-          cells.push([r,c]);
-        } else break;
+        if(id===target||id==='wild'){ cells.push([r,c]); } else break;
       }
-
       if(cells.length<3) continue;
-      const baseMult = cells.length>=5?30: cells.length>=4?8: 3;
+
+      let baseMult = cells.length>=5?30: cells.length>=4?8: 3;
+      if(hasDiagBoost && line.isDiag) baseMult*=2;
+      if(hasCrownPower && target==='crown') baseMult*=3;
       const mult = Math.round(baseMult * multBonus * 10)/10;
       cells.forEach(([rr,cc])=>winCells.add(`${rr},${cc}`));
-      wins.push({sym:target,count:cells.length,mult,cells,name:line.name});
+      wins.push({sym:target,count:cells.length,mult,cells,name:line.name,isDiag:line.isDiag});
     }
 
     // Scatter specials
@@ -296,57 +327,96 @@ class SlotGame{
       }
     }
 
-    // up_scatter_bonus: each level +25%
     const scatterBonus = 1 + (this.upgradeLevels['up_scatter_bonus']||0)*0.25;
-    // up_mega_jackpot: each level +30%
-    const megaBonus = 1 + (this.upgradeLevels['up_mega_jackpot']||0)*0.30;
+    const megaBonus    = 1 + (this.upgradeLevels['up_mega_jackpot']||0)*0.30;
+    const hasScatterMax = this.activePerks.includes('scatter_max');
+    const hasBombChain  = this.activePerks.includes('bomb_chain');
+    const hasMegaSense  = this.activePerks.includes('mega_sense');
 
     let symWin=0;
-    for(const w of wins) symWin+=SYM[w.sym].val*valBonus*w.mult*(this.bet/10);
+    for(const w of wins) symWin+=SYM[w.sym].val*valBonus*w.mult;
+
     let scatterWin=0;
+    let bombCount=0;
     for(const s of scatters){
-      if(s.sym.special==='bomb') scatterWin+=(Math.floor(Math.random()*200)+100)*scatterBonus;
-      if(s.sym.special==='gift') scatterWin+=(Math.floor(Math.random()*500)+100)*scatterBonus;
+      if(s.sym.special==='bomb'){
+        bombCount++;
+        const raw=hasScatterMax?300:(Math.floor(Math.random()*200)+100);
+        scatterWin+=raw*scatterBonus;
+      }
+      if(s.sym.special==='gift'){
+        const raw=hasScatterMax?600:(Math.floor(Math.random()*500)+100);
+        scatterWin+=raw*scatterBonus;
+      }
     }
+    // bomb_chain perk: 2+ bombs double scatter
+    if(hasBombChain && bombCount>=2) scatterWin*=2;
+
     const megaCount=flat.filter(id=>id==='mega').length;
     if(megaCount>=3) scatterWin+=megaCount*600*megaBonus;
+    else if(hasMegaSense && megaCount>=2) scatterWin+=megaCount*300*megaBonus;
+
     if(doubleActive&&symWin>0) symWin*=2;
 
     let multiplier=1;
     if(this.activeEffects.has('double_spin')) multiplier=2;
     symWin*=multiplier;
 
-    // Bingo: count lines where ALL n cells matched
-    let bingoBonus=0;
-    let bingoCount=0;
-    let fullBingo=false;
+    // streak / losing_charge perks
+    const hasStreak=this.activePerks.includes('streak_bonus');
+    const hasLosingCharge=this.activePerks.includes('losing_charge');
+    let streakBonus=0;
+    let chargeBonus=0;
+    if(hasStreak && this.winStreak>=3 && symWin>0) streakBonus=symWin*0.5;
+    if(hasLosingCharge && this.loseStreak>0 && (symWin+scatterWin)>0){
+      const chargeRate=Math.min(this.loseStreak*0.20, 2.0);
+      chargeBonus=Math.round((symWin+scatterWin)*chargeRate);
+    }
+
+    // fruit_combo perk
+    const hasFruitCombo=this.activePerks.includes('fruit_combo');
+    let fruitBonus=0;
+    if(hasFruitCombo){
+      const fruits=['cherry','lemon','orange','grape'];
+      const presentFruits=new Set(flat.filter(id=>fruits.includes(id)));
+      if(presentFruits.size>=4) fruitBonus=80;
+    }
+
+    symWin=Math.round(symWin+streakBonus);
+
+    // Bingo
+    let bingoBonus=0, bingoCount=0, fullBingo=false;
     if(this.bingoPurchased){
       const totalLines=n*2+2;
       for(const w of wins){ if(w.cells.length===n) bingoCount++; }
-      fullBingo=bingoCount===totalLines;
-      if(fullBingo){
-        bingoBonus=this.bet*300;
-      } else if(bingoCount>=4){
-        bingoBonus=this.bet*25;
-      } else if(bingoCount>=3){
-        bingoBonus=this.bet*10;
-      } else if(bingoCount>=2){
-        bingoBonus=this.bet*4;
-      }
+      fullBingo=(bingoCount===totalLines);
+      if(fullBingo)          bingoBonus=this.bet*300;
+      else if(bingoCount>=4) bingoBonus=this.bet*25;
+      else if(bingoCount>=3) bingoBonus=this.bet*10;
+      else if(bingoCount>=2) bingoBonus=this.bet*4;
     }
 
+    // free_spin perk: any complete line → next spin free
+    if(this.activePerks.includes('free_spin') && bingoCount>0) this.freeSpin=true;
+
     const shielded=this.activeEffects.has('shield');
-    const total=Math.round(symWin+scatterWin+bingoBonus);
+    const total=Math.round(symWin+scatterWin+fruitBonus+chargeBonus+bingoBonus);
     if(shielded&&total===0) this.balance+=this.bet;
-
     this.balance+=total;
-    this.history.unshift({bet:this.bet,win:total});
-    if(this.history.length>12)this.history.pop();
 
+    // Update streaks
+    if(total>0){ this.winStreak++; this.loseStreak=0; }
+    else { this.loseStreak++; this.winStreak=0; }
+
+    this.history.unshift({win:total});
+    if(this.history.length>12) this.history.pop();
     this.activeEffects.clear();
 
-    return{wins,winCells,scatters,symWin:Math.round(symWin),scatterWin:Math.round(scatterWin),
+    return{wins,winCells,scatters,
+      symWin,scatterWin:Math.round(scatterWin),
+      fruitBonus,chargeBonus,streakBonus:Math.round(streakBonus),
       bingoBonus:Math.round(bingoBonus),bingoCount,fullBingo,
-      total,doubleActive,multiplier,shielded};
+      total,doubleActive,multiplier,shielded,
+      winStreak:this.winStreak,loseStreak:this.loseStreak};
   }
 }

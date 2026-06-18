@@ -185,18 +185,6 @@ body{
   background:var(--panel);border-top:1px solid var(--border);
   border-bottom:1px solid var(--border);
 }
-.bet-row{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.bet-adj{
-  width:36px;height:36px;border-radius:8px;
-  background:#1a1030;border:1px solid var(--border);
-  color:var(--gold);font-size:1.2em;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:background .1s;
-}
-.bet-adj:hover{background:#2a1848}
-.bet-display{text-align:center;min-width:52px}
-.bet-lbl{font-size:.55em;color:var(--dim);letter-spacing:2px}
-#betVal{font-size:1.1em;font-weight:bold;color:var(--gold2)}
 
 /* win-flash: cell highlight burst on reveal */
 .cell.win-flash{
@@ -488,6 +476,59 @@ body{
   background:linear-gradient(135deg,#8B6914,#c8a82a,#f0c020);
   color:#000;font-size:.9em;font-weight:bold;font-family:inherit;cursor:pointer;
 }
+
+/* SPIN COUNTER */
+.spin-counter{
+  font-size:.65em;color:var(--dim);letter-spacing:1px;
+  padding:4px 10px;background:var(--panel);border-radius:20px;
+  border:1px solid var(--border);
+}
+
+/* MILESTONE MODAL */
+#milestone-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.88);
+  display:flex;align-items:center;justify-content:center;z-index:1050;
+}
+#milestone-card{
+  background:linear-gradient(135deg,#0e0820,#1e0f38,#0e0820);
+  border:2px solid var(--gold);border-radius:20px;
+  padding:24px 18px;width:92%;max-width:360px;
+  box-shadow:0 0 60px rgba(240,192,32,.4);
+  animation:card-popin .4s cubic-bezier(.34,1.56,.64,1);
+}
+#ms-title{
+  font-size:1.4em;font-weight:bold;color:var(--gold);
+  text-align:center;letter-spacing:3px;margin-bottom:4px;
+}
+#ms-sub{
+  font-size:.68em;color:var(--dim);text-align:center;
+  margin-bottom:16px;letter-spacing:1px;
+}
+#ms-perks{display:flex;flex-direction:column;gap:10px}
+.ms-perk-card{
+  display:flex;flex-direction:column;gap:4px;
+  background:#1a1030;border:1px solid var(--border);
+  border-radius:14px;padding:12px 14px;cursor:pointer;
+  transition:all .15s;
+}
+.ms-perk-card:hover,.ms-perk-card:active{
+  border-color:var(--gold);background:#251840;
+  box-shadow:0 0 14px rgba(240,192,32,.2);
+}
+.ms-perk-e{font-size:1.8em;line-height:1;margin-bottom:2px}
+.ms-perk-name{font-size:.85em;font-weight:bold;color:var(--gold2)}
+.ms-perk-desc{font-size:.7em;color:var(--text);line-height:1.4}
+
+/* ACTIVE PERKS in UPG tab */
+.perks-wrap{display:flex;flex-wrap:wrap;gap:6px}
+.perk-chip{
+  display:flex;align-items:center;gap:5px;
+  background:#1a1030;border:1px solid var(--gold);
+  border-radius:20px;padding:4px 12px;
+  font-size:.72em;color:var(--gold2);cursor:default;
+}
+.perk-chip-e{font-size:1.2em}
+.wl-item.wl-perk{border-color:#bb88ff;color:#bb88ff}
 
 /* EFFECT TOAST */
 #effect-toast{
