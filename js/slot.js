@@ -210,34 +210,39 @@ class SlotGame{
     const winCells=new Set();
 
     const n=this.gridSize;
-    // Check each row: consecutive match from LEFT, WILD substitutes
-    for(let r=0;r<n;r++){
-      const row=this.grid[r];
-      // find the target symbol (first non-wild)
-      let target=null;
-      for(let c=0;c<5;c++){
-        if(row[c]!=='wild'){target=row[c];break;}
-      }
-      if(!target) continue; // all wilds — skip (rare)
 
-      // count consecutive from left: target or wild
-      let count=0;
+    // 체크할 라인들: 각 행 + 대각선 2개
+    const lines=[];
+    for(let r=0;r<n;r++){
+      lines.push({name:`${r+1}행`, coords:Array.from({length:n},(_,c)=>[r,c])});
+    }
+    lines.push({name:'↘대각', coords:Array.from({length:n},(_,i)=>[i,i])});
+    lines.push({name:'↙대각', coords:Array.from({length:n},(_,i)=>[i,n-1-i])});
+
+    for(const line of lines){
+      const coords=line.coords;
+      // 첫 번째 non-wild 심볼이 타겟
+      let target=null;
+      for(const [r,c] of coords){
+        if(this.grid[r][c]!=='wild'){target=this.grid[r][c];break;}
+      }
+      if(!target) continue;
+
+      // 연속 체크
       const cells=[];
-      for(let c=0;c<5;c++){
-        const id=row[c];
+      for(const [r,c] of coords){
+        const id=this.grid[r][c];
         const isWild=id==='wild';
-        if(id===target || isWild){
-          // wild power: each wild counts as 1+bonus
-          count += isWild ? 1+wildPowerBonus : 1;
+        if(id===target||isWild){
           cells.push([r,c]);
-        } else break; // chain broken
+        } else break;
       }
 
       if(cells.length<3) continue;
       const baseMult = cells.length>=5?30: cells.length>=4?8: 3;
       const mult = Math.round(baseMult * multBonus * 10)/10;
       cells.forEach(([rr,cc])=>winCells.add(`${rr},${cc}`));
-      wins.push({sym:target,count:cells.length,mult,cells});
+      wins.push({sym:target,count:cells.length,mult,cells,name:line.name});
     }
 
     // Scatter specials

@@ -477,7 +477,7 @@ async function revealWinsSequentially(result){
       runningTotal+=item.payout;
       const tag=document.createElement('span');
       tag.className='wl-item wl-line wl-reveal';
-      tag.textContent=`${SYM[item.w.sym].e} ${item.w.count}개 ×${item.w.mult} +${item.payout}`;
+      tag.textContent=`${SYM[item.w.sym].e} ${item.w.name||''} ${item.w.count}개×${item.w.mult} +${item.payout}`;
       wlEl.appendChild(tag);
       updateBannerRunning(runningTotal, result);
 
