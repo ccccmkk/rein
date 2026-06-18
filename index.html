@@ -3,101 +3,67 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>REIN — Bird Flocking RL</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+  <title>REIN — Roulette</title>
   <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/controls/OrbitControls.js"></script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <div id="app">
-    <div id="sidebar">
-      <div class="brand">
-        <div class="brand-title">REIN</div>
-        <div class="brand-sub">Bird Flocking RL</div>
-      </div>
-
-      <div class="section">
-        <div class="controls">
-          <button id="btnStart">&#9654; Start</button>
-          <button id="btnPause" disabled>&#9646;&#9646; Pause</button>
-          <button id="btnReset">&#8635; Reset</button>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="slider-row">
-          <label>Speed <span id="lblSpeed">1&#215;</span></label>
-          <input type="range" id="sldSpeed" min="1" max="10" value="1">
-        </div>
-        <div class="slider-row">
-          <label>Birds <span id="lblBirds">60</span></label>
-          <input type="range" id="sldBirds" min="10" max="120" value="60">
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">RL STATUS</div>
-        <div class="stat"><span>Epsilon ε</span><span id="sEps">1.000</span></div>
-        <div class="stat"><span>Memory</span><span id="sMem">0</span></div>
-        <div class="stat"><span>학습 단계</span><span id="sPhase">탐색 중</span></div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">FLOCKING</div>
-        <div class="stat"><span>평균 이웃 수</span><span id="sCohesion">0.0</span></div>
-        <div class="stat"><span>충돌 수</span><span id="sCollisions">0</span></div>
-        <div class="stat"><span>평균 보상</span><span id="sAvgReward">0.000</span></div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">HOW IT LEARNS</div>
-        <div class="hint">시작: 완전 무지 상태</div>
-        <div class="hint">충돌 → 패널티 학습</div>
-        <div class="hint">군집 → 보상 학습</div>
-        <div class="hint">점점 V자 대형 형성...</div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">CAMERA</div>
-        <div class="hint">Left drag — rotate</div>
-        <div class="hint">Scroll — zoom</div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">LEGEND</div>
-        <div class="legend-item"><i class="dot" style="background:#2244cc"></i>혼자 비행 (단수)</div>
-        <div class="legend-item"><i class="dot" style="background:#ffee88"></i>군집 비행 (다수)</div>
+    <div id="wheel-area">
+      <div id="marker">▼</div>
+      <div id="result-banner" class="hidden">
+        <div id="result-num">0</div>
+        <div id="result-msg">+0</div>
       </div>
     </div>
 
-    <div id="view">
-      <div id="formula">
-        <div class="f-title">REWARD FUNCTION</div>
-        <div class="f-equation">
-          R&nbsp;=&nbsp;<span class="coeff pos">+0.50</span>&nbsp;&times;&nbsp;N<sub>flock</sub><br>
-          &nbsp;&nbsp;&nbsp;&minus;&nbsp;<span class="coeff neg">1.00</span>&nbsp;&times;&nbsp;N<sub>collision</sub><br>
-          &nbsp;&nbsp;&nbsp;+&nbsp;<span class="coeff pos">0.20</span>&nbsp;&times;&nbsp;alignment
-        </div>
-        <div class="f-vals">
-          <div class="f-row"><span class="f-lbl">flock&nbsp;&nbsp;&nbsp;</span><span id="fv-flock" class="f-val pos">+0.000</span></div>
-          <div class="f-row"><span class="f-lbl">collision</span><span id="fv-coll"  class="f-val neg">−0.000</span></div>
-          <div class="f-row"><span class="f-lbl">alignment</span><span id="fv-align" class="f-val pos">+0.000</span></div>
-          <div class="f-row total-row"><span class="f-lbl">avg&nbsp;R&nbsp;&nbsp;&nbsp;</span><span id="fv-total" class="f-val">0.000</span></div>
-        </div>
-        <div class="f-eps-row">
-          <span>ε&nbsp;=&nbsp;<span id="fv-eps">1.000</span></span>
-          <span id="fv-phase" class="f-phase">랜덤 탐색</span>
-        </div>
-        <div class="f-chart-label">avg reward history</div>
-        <canvas id="rewardChart" width="220" height="50"></canvas>
+    <div id="sidebar">
+      <div class="brand">REIN<span class="brand-sub"> ROULETTE</span></div>
+
+      <div class="balance-box">
+        <div class="balance-label">CHIPS</div>
+        <div id="balance">1,000</div>
       </div>
+
+      <div class="section-label">CHIP</div>
+      <div class="chip-row" id="chipRow">
+        <button class="chip" data-val="5">5</button>
+        <button class="chip active" data-val="10">10</button>
+        <button class="chip" data-val="50">50</button>
+        <button class="chip" data-val="100">100</button>
+        <button class="chip" data-val="500">500</button>
+      </div>
+
+      <div class="section-label">BETS</div>
+      <div class="bet-grid">
+        <button class="bet-btn red" data-bet="red">RED<br><small>×2</small></button>
+        <button class="bet-btn blk" data-bet="black">BLACK<br><small>×2</small></button>
+        <button class="bet-btn mid" data-bet="odd">ODD<br><small>×2</small></button>
+        <button class="bet-btn mid" data-bet="even">EVEN<br><small>×2</small></button>
+        <button class="bet-btn mid" data-bet="low">1–18<br><small>×2</small></button>
+        <button class="bet-btn mid" data-bet="high">19–36<br><small>×2</small></button>
+        <button class="bet-btn doz" data-bet="d1">1st 12<br><small>×3</small></button>
+        <button class="bet-btn doz" data-bet="d2">2nd 12<br><small>×3</small></button>
+        <button class="bet-btn doz" data-bet="d3">3rd 12<br><small>×3</small></button>
+      </div>
+
+      <div class="section-label">NUMBER <small style="color:#666">×36</small></div>
+      <div class="num-grid" id="numGrid"></div>
+
+      <div class="bet-summary">
+        <span>베팅: <b id="totalBet">0</b> chips</span>
+        <button id="clearBtn">초기화</button>
+      </div>
+
+      <button id="spinBtn" class="spin-btn">S P I N</button>
+
+      <div class="section-label">HISTORY</div>
+      <div id="history"></div>
     </div>
   </div>
 
-  <script src="js/bird.js"></script>
-  <script src="js/dqn.js"></script>
-  <script src="js/simulation.js"></script>
+  <script src="js/wheel.js"></script>
+  <script src="js/game.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
