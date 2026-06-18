@@ -150,16 +150,35 @@ body{
 .spin-btn:hover:not(:disabled){filter:brightness(1.15);box-shadow:0 0 28px rgba(240,192,32,.7)}
 .spin-btn:disabled{filter:brightness(.4);cursor:default;box-shadow:none}
 
+/* win-flash: cell highlight burst on reveal */
+.cell.win-flash{
+  animation:win-flash .35s ease-out;
+}
+@keyframes win-flash{
+  0%{transform:scale(1.35);box-shadow:0 0 40px var(--gold),0 0 80px rgba(240,192,32,.6)}
+  100%{transform:scale(1)}
+}
+
+/* count-up: banner amount pop */
+.count-up{animation:count-up .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes count-up{
+  0%{transform:scale(.6);opacity:.4}
+  100%{transform:scale(1);opacity:1}
+}
+
 /* WIN LINES */
 #win-lines{
   padding:4px 10px;min-height:24px;
   display:flex;flex-wrap:wrap;gap:4px;
+  overflow-x:auto;
 }
 .wl-item{
   font-size:.68em;background:#1a1030;
   border:1px solid var(--border);border-radius:20px;
   padding:3px 10px;color:var(--dim);
 }
+.wl-item.wl-reveal{animation:tag-pop .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes tag-pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
 .wl-item.wl-line{border-color:var(--gold);color:var(--gold)}
 .wl-item.wl-scatter{border-color:#44dd66;color:#44dd66}
 .wl-item.wl-double{border-color:#44aaff;color:#44aaff}

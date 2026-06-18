@@ -243,13 +243,7 @@ async function doSpin(){
   await delay(450);
   const result=game.resolve();
 
-  result.winCells.forEach(key=>{
-    const [r,c]=key.split(',');
-    cellEls[+r][+c].classList.add('win');
-  });
-
-  showWinLines(result);
-  if(result.total>0) showBanner(result);
+  await revealWinsSequentially(result);
 
   updateBalance();
   updateHistory();
@@ -257,33 +251,125 @@ async function doSpin(){
   spinBtn.disabled=false;
 }
 
-function showBanner(result){
+// Build sorted reveal list: line wins (low→high payout) then scatters then specials
+function buildRevealList(result){
+  const list=[];
+
+  // Line wins sorted by payout ascending
+  const lineWins=[...result.wins].map(w=>{
+    const payout=Math.round(SYM[w.sym].val*w.mult*(game.bet/10)*result.multiplier);
+    return{type:'line',w,payout,cells:[...w.cells]};
+  }).sort((a,b)=>a.payout-b.payout);
+  list.push(...lineWins);
+
+  // Scatter items
+  for(const s of result.scatters){
+    list.push({type:'scatter',s});
+  }
+
+  // Specials last
+  if(result.doubleActive) list.push({type:'double'});
+  if(result.multiplier>1) list.push({type:'multiplier'});
+  const mega=result.scatters.filter(s=>s.sym.special==='mega').length;
+  if(mega>=3) list.push({type:'mega',mega});
+
+  return list;
+}
+
+async function revealWinsSequentially(result){
+  const wlEl=document.getElementById('win-lines');
+  wlEl.innerHTML='';
+
+  if(result.total===0 && !result.shielded){
+    if(result.shielded) updateBannerShield();
+    return;
+  }
+
+  const list=buildRevealList(result);
+  let runningTotal=0;
+
+  for(const item of list){
+    await delay(320);
+
+    if(item.type==='line'){
+      // Light up these cells
+      item.cells.forEach(([r,c])=>{
+        cellEls[r][c].classList.add('win');
+        cellEls[r][c].classList.add('win-flash');
+        setTimeout(()=>cellEls[r][c].classList.remove('win-flash'),400);
+      });
+      runningTotal+=item.payout;
+      const tag=document.createElement('span');
+      tag.className='wl-item wl-line wl-reveal';
+      tag.textContent=`${SYM[item.w.sym].e} ${item.w.name} ${item.w.count}매×${item.w.mult} +${item.payout}`;
+      wlEl.appendChild(tag);
+      updateBannerRunning(runningTotal, result);
+
+    } else if(item.type==='scatter'){
+      const s=item.s;
+      cellEls[s.r][s.c].classList.add('win','win-flash');
+      setTimeout(()=>cellEls[s.r][s.c].classList.remove('win-flash'),400);
+      const tag=document.createElement('span');
+      tag.className='wl-item wl-scatter wl-reveal';
+      tag.textContent=`${s.sym.e} ${s.sym.name} 스캐터`;
+      wlEl.appendChild(tag);
+
+    } else if(item.type==='double'){
+      const tag=document.createElement('span');
+      tag.className='wl-item wl-double wl-reveal';
+      tag.textContent='⚡ 전체 ×2!';
+      wlEl.appendChild(tag);
+
+    } else if(item.type==='multiplier'){
+      const tag=document.createElement('span');
+      tag.className='wl-item wl-double wl-reveal';
+      tag.textContent=`✖️ 당첨금 ×${result.multiplier}`;
+      wlEl.appendChild(tag);
+
+    } else if(item.type==='mega'){
+      const tag=document.createElement('span');
+      tag.className='wl-item wl-mega wl-reveal';
+      tag.textContent=`🌟 MEGA JACKPOT ×${item.mega}`;
+      wlEl.appendChild(tag);
+    }
+
+    // scroll win-lines into view
+    wlEl.scrollLeft=wlEl.scrollWidth;
+  }
+
+  // Final big banner
+  if(result.total>0) await showBannerFinal(result);
+  if(result.shielded && result.total===0) showBannerShield();
+}
+
+function updateBannerRunning(running, result){
   const banner=document.getElementById('win-banner');
+  document.getElementById('wb-amount').textContent='+'+running+' coins';
+  document.getElementById('wb-detail').textContent='집계 중...';
+  banner.classList.remove('hidden');
+}
+
+async function showBannerFinal(result){
+  await delay(200);
+  const banner=document.getElementById('win-banner');
+  const amtEl=document.getElementById('wb-amount');
+  amtEl.classList.add('count-up');
+  setTimeout(()=>amtEl.classList.remove('count-up'),600);
   document.getElementById('wb-amount').textContent='+'+result.total+' coins';
   const parts=[];
   if(result.lineWin) parts.push('라인: +'+result.lineWin+(result.multiplier>1?` (×${result.multiplier})`:''));
   if(result.scatterWin) parts.push('스캐터: +'+result.scatterWin);
-  if(result.shielded && result.total===0) parts.push('🛡️ 베팅 보호 발동!');
   document.getElementById('wb-detail').textContent=parts.join(' / ');
   banner.classList.remove('hidden');
 }
 
-function showWinLines(result){
-  const el=document.getElementById('win-lines');
-  const tags=[];
-  for(const w of result.wins){
-    const payout=Math.round(SYM[w.sym].val*w.mult*(game.bet/10)*result.multiplier);
-    tags.push(`<span class="wl-item wl-line">${SYM[w.sym].e} ${w.name} ${w.count}매×${w.mult} +${payout}</span>`);
-  }
-  for(const s of result.scatters){
-    tags.push(`<span class="wl-item wl-scatter">${s.sym.e} ${s.sym.name} 스캐터</span>`);
-  }
-  if(result.doubleActive) tags.push('<span class="wl-item wl-double">⚡ 전체 ×2!</span>');
-  const mega=result.scatters.filter(s=>s.sym.special==='mega').length;
-  if(mega>=3) tags.push(`<span class="wl-item wl-mega">🌟 MEGA JACKPOT ×${mega}</span>`);
-  if(result.multiplier>1) tags.push(`<span class="wl-item wl-double">✖️ 당첨금 ×${result.multiplier}</span>`);
-  el.innerHTML=tags.join('');
+function showBannerShield(){
+  const banner=document.getElementById('win-banner');
+  document.getElementById('wb-amount').textContent='🛡️ 보호 발동';
+  document.getElementById('wb-detail').textContent='패배시 베팅 반환';
+  banner.classList.remove('hidden');
 }
+
 
 function updateHistory(){
   const el=document.getElementById('history');
