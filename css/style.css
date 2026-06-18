@@ -479,11 +479,12 @@ body{
 .rank-max{color:var(--gold);font-weight:bold}
 .rank-bal{color:#88ddaa}
 .rank-spins{color:var(--dim)}
-.rank-submit-btn{
-  width:100%;margin-top:12px;padding:11px;border-radius:10px;border:none;
-  background:linear-gradient(135deg,#8B6914,#c8a82a,#f0c020);
-  color:#000;font-size:.9em;font-weight:bold;font-family:inherit;cursor:pointer;
+.rank-refresh-btn{
+  background:none;border:1px solid var(--border);border-radius:20px;
+  color:var(--dim);font-size:.75em;padding:2px 8px;cursor:pointer;
+  font-family:inherit;margin-left:8px;vertical-align:middle;
 }
+.rank-refresh-btn:hover{background:var(--panel);color:var(--text)}
 
 .settings-wrap{display:flex;gap:8px;flex-wrap:wrap;padding:4px 0}
 .settings-btn{

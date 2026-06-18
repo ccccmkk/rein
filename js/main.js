@@ -346,7 +346,7 @@ async function buildRank(){
   el.innerHTML='<div class="rank-loading">로딩 중...</div>';
   const rows=await getLeaderboard();
   if(!rows||!rows.length){ el.innerHTML='<div class="rank-loading">데이터 없음</div>'; return; }
-  let html='<div class="rank-title">🏆 LEADERBOARD — 최대 코인 기준</div>';
+  let html='<div class="rank-title">🏆 LEADERBOARD — 최대 코인 기준 <button class="rank-refresh-btn" onclick="buildRank()">🔄</button></div>';
   html+='<div class="rank-header"><span class="rank-pos">#</span><span class="rank-nick">닉네임</span><span class="rank-col">최대코인</span><span class="rank-col">현재</span><span class="rank-col">횟수</span></div>';
   rows.forEach((row,i)=>{
     const isMe=row.nickname===playerNick;
@@ -416,7 +416,7 @@ function buildUpgradeTab(){
     btn.addEventListener('click',()=>{
       const id=btn.dataset.upg;
       const upg=UPGRADES.find(u=>u.id===id);
-      if(game.buyUpgrade(id)){ updateBalance();buildUpgradeTab();showUpgradePopup(upg,game.upgradeLevels[id]);game.save(); }
+      if(game.buyUpgrade(id)){ updateBalance();buildUpgradeTab();showUpgradePopup(upg,game.upgradeLevels[id]);game.save();serverSave(); }
     });
   });
 
