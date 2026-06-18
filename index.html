@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>REIN — Traffic Fine Simulation</title>
+  <title>REIN — Bird Flocking RL</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/examples/js/controls/OrbitControls.js"></script>
   <link rel="stylesheet" href="css/style.css">
@@ -13,7 +14,7 @@
     <div id="sidebar">
       <div class="brand">
         <div class="brand-title">REIN</div>
-        <div class="brand-sub">Traffic Fine Simulation</div>
+        <div class="brand-sub">Bird Flocking RL</div>
       </div>
 
       <div class="section">
@@ -30,53 +31,72 @@
           <input type="range" id="sldSpeed" min="1" max="10" value="1">
         </div>
         <div class="slider-row">
-          <label>&#x1F697; Cars <span id="lblCars">20</span></label>
-          <input type="range" id="sldCars" min="5" max="60" value="20">
-        </div>
-        <div class="slider-row">
-          <label>&#x1F46E; Police <span id="lblPolice">3</span></label>
-          <input type="range" id="sldPolice" min="1" max="10" value="3">
+          <label>Birds <span id="lblBirds">60</span></label>
+          <input type="range" id="sldBirds" min="10" max="120" value="60">
         </div>
       </div>
 
       <div class="section">
-        <div class="section-title">&#x1F6A8; 단속 현황</div>
-        <div class="stat"><span>총 단속 건수</span><span id="sTotalFines">0건</span></div>
-        <div class="stat"><span>총 징수 벌금</span><span id="sFineAmount">0원</span></div>
-        <div class="stat"><span>과속 단속</span><span id="sSpeedFines">0건</span></div>
-        <div class="stat"><span>신호위반 단속</span><span id="sRedFines">0건</span></div>
-        <div class="stat"><span>경찰 단속수</span><span id="sPolFines">0건</span></div>
+        <div class="section-title">RL STATUS</div>
+        <div class="stat"><span>Epsilon ε</span><span id="sEps">1.000</span></div>
+        <div class="stat"><span>Memory</span><span id="sMem">0</span></div>
+        <div class="stat"><span>학습 단계</span><span id="sPhase">탐색 중</span></div>
       </div>
 
       <div class="section">
-        <div class="section-title">&#x1F4CA; 실시간 현황</div>
-        <div class="stat"><span>시민 평균 재산</span><span id="sAvgMoney">0원</span></div>
-        <div class="stat"><span>과속 중</span><span id="sSpeeders">0/0</span></div>
-        <div class="stat"><span>신호위반 중</span><span id="sRedNow">0/0</span></div>
+        <div class="section-title">FLOCKING</div>
+        <div class="stat"><span>평균 이웃 수</span><span id="sCohesion">0.0</span></div>
+        <div class="stat"><span>충돌 수</span><span id="sCollisions">0</span></div>
+        <div class="stat"><span>평균 보상</span><span id="sAvgReward">0.000</span></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">HOW IT LEARNS</div>
+        <div class="hint">시작: 완전 무지 상태</div>
+        <div class="hint">충돌 → 패널티 학습</div>
+        <div class="hint">군집 → 보상 학습</div>
+        <div class="hint">점점 V자 대형 형성...</div>
       </div>
 
       <div class="section">
         <div class="section-title">CAMERA</div>
-        <div class="hint">Left drag &mdash; rotate</div>
-        <div class="hint">Right drag &mdash; pan</div>
-        <div class="hint">Scroll &mdash; zoom</div>
+        <div class="hint">Left drag — rotate</div>
+        <div class="hint">Scroll — zoom</div>
       </div>
 
       <div class="section">
         <div class="section-title">LEGEND</div>
-        <div class="legend-item"><i class="dot" style="background:#0044cc"></i>경찰차</div>
-        <div class="legend-item"><i class="dot" style="background:#ff4400"></i>과속 차량</div>
-        <div class="legend-item"><i class="dot" style="background:#ff0000"></i>신호위반 차량</div>
-        <div class="legend-item"><i class="dot" style="background:#00ff44"></i>신호 (Green)</div>
-        <div class="legend-item"><i class="dot" style="background:#ff2200"></i>신호 (Red)</div>
+        <div class="legend-item"><i class="dot" style="background:#2244cc"></i>혼자 비행 (단수)</div>
+        <div class="legend-item"><i class="dot" style="background:#ffffff"></i>군집 비행 (다수)</div>
       </div>
     </div>
 
-    <div id="view"></div>
+    <div id="view">
+      <div id="formula">
+        <div class="f-title">REWARD FUNCTION</div>
+        <div class="f-equation">
+          R&nbsp;=&nbsp;<span class="coeff pos">+0.15</span>&nbsp;&times;&nbsp;N<sub>flock</sub><br>
+          &nbsp;&nbsp;&nbsp;&minus;&nbsp;<span class="coeff neg">3.00</span>&nbsp;&times;&nbsp;N<sub>collision</sub><br>
+          &nbsp;&nbsp;&nbsp;+&nbsp;<span class="coeff pos">0.05</span>&nbsp;&times;&nbsp;alignment
+        </div>
+        <div class="f-vals">
+          <div class="f-row"><span class="f-lbl">flock&nbsp;&nbsp;&nbsp;</span><span id="fv-flock" class="f-val pos">+0.000</span></div>
+          <div class="f-row"><span class="f-lbl">collision</span><span id="fv-coll"  class="f-val neg">−0.000</span></div>
+          <div class="f-row"><span class="f-lbl">alignment</span><span id="fv-align" class="f-val pos">+0.000</span></div>
+          <div class="f-row total-row"><span class="f-lbl">avg&nbsp;R&nbsp;&nbsp;&nbsp;</span><span id="fv-total" class="f-val">0.000</span></div>
+        </div>
+        <div class="f-eps-row">
+          <span>ε&nbsp;=&nbsp;<span id="fv-eps">1.000</span></span>
+          <span id="fv-phase" class="f-phase">랜덤 탐색</span>
+        </div>
+        <div class="f-chart-label">avg reward history</div>
+        <canvas id="rewardChart" width="220" height="50"></canvas>
+      </div>
+    </div>
   </div>
 
-  <script src="js/road.js"></script>
-  <script src="js/car.js"></script>
+  <script src="js/bird.js"></script>
+  <script src="js/dqn.js"></script>
   <script src="js/simulation.js"></script>
   <script src="js/main.js"></script>
 </body>
