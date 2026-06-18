@@ -1,15 +1,13 @@
 const game=new SlotGame();
+game.load(); // auto-load save on start
+
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 
 // Nickname
-let playerNick = localStorage.getItem('rein_nick')||'';
+let playerNick=localStorage.getItem('rein_nick')||'';
 
 function initNickname(){
-  if(playerNick){
-    document.getElementById('nick-modal').classList.add('hidden');
-    updateNickDisplay();
-    return;
-  }
+  if(playerNick){ document.getElementById('nick-modal').classList.add('hidden'); updateNickDisplay(); return; }
   const modal=document.getElementById('nick-modal');
   const input=document.getElementById('nick-input');
   const okBtn=document.getElementById('nick-ok');
@@ -34,7 +32,7 @@ function updateNickDisplay(){
 
 async function submitScore(){
   if(!playerNick) return;
-  await saveScore(playerNick, game.balance);
+  await saveScore(playerNick,game.balance);
 }
 
 initNickname();
@@ -57,24 +55,19 @@ function buildGrid(){
       cellEls[r][c]=el;
     }
   }
-  // grid size selector buttons
   const sel=document.getElementById('grid-size-sel');
   sel.innerHTML='';
-  [3,4,5].forEach(n=>{
+  [3,4,5].forEach(sz=>{
     const btn=document.createElement('button');
-    btn.className='gs-btn'+(game.gridSize===n?' active':'')+(game.unlockedGridSizes.has(n)?'':' locked');
-    btn.textContent=n+'×'+n;
-    btn.disabled=!game.unlockedGridSizes.has(n);
-    btn.addEventListener('click',()=>{
-      if(game.setGridSize(n)){ buildGrid(); renderGrid(); }
-    });
+    btn.className='gs-btn'+(game.gridSize===sz?' active':'')+(game.unlockedGridSizes.has(sz)?'':' locked');
+    btn.textContent=sz+'×'+sz;
+    btn.disabled=!game.unlockedGridSizes.has(sz);
+    btn.addEventListener('click',()=>{ if(game.setGridSize(sz)){ buildGrid();renderGrid(); } });
     sel.appendChild(btn);
   });
 }
 
-function getActiveEmojis(){
-  return [...game._pool].map(s=>s.e);
-}
+function getActiveEmojis(){ return [...game._pool].map(s=>s.e); }
 
 function applySymClass(el,id){
   el.className='cell';
@@ -85,15 +78,14 @@ function applySymClass(el,id){
 function renderGrid(){
   const n=game.gridSize;
   for(let r=0;r<n;r++) for(let c=0;c<n;c++){
-    const el=cellEls[r][c];
-    el.textContent=SYM[game.grid[r][c]].e;
-    applySymClass(el,game.grid[r][c]);
+    cellEls[r][c].textContent=SYM[game.grid[r][c]].e;
+    applySymClass(cellEls[r][c],game.grid[r][c]);
   }
 }
 buildGrid();
 renderGrid();
 
-// PAYTABLE (dynamic — shows only unlocked)
+// PAYTABLE
 function buildPaytable(){
   const ptGrid=document.getElementById('pt-grid');
   ptGrid.innerHTML='';
@@ -101,19 +93,19 @@ function buildPaytable(){
     const d=document.createElement('div');
     d.className='pt-item'+(s.special==='mega'?' pt-mega':s.special?' pt-special':'');
     if(s.special&&s.special!=='wild'&&s.special!=='mega'){
-      const desc=s.special==='bomb'?'+100~300 scatter':s.special==='double'?'라인 ×2':'+100~600 scatter';
+      const desc=s.special==='bomb'?'+500~1500 scatter':s.special==='double'?'라인 ×2':'+500~3000 scatter';
       d.innerHTML=`<span class="pt-emoji">${s.e}</span><div class="pt-info"><div class="pt-name">${s.name}</div><div class="pt-vals">${desc}</div></div>`;
     } else if(s.special==='wild'){
       d.innerHTML=`<span class="pt-emoji">${s.e}</span><div class="pt-info"><div class="pt-name">${s.name}</div><div class="pt-vals">아무 심볼 대체</div></div>`;
     } else {
-      d.innerHTML=`<span class="pt-emoji">${s.e}</span><div class="pt-info"><div class="pt-name">${s.name}</div><div class="pt-vals">왼쪽연속 3=×3 4=×8 5=×30<br>val:${s.val}</div></div>`;
+      d.innerHTML=`<span class="pt-emoji">${s.e}</span><div class="pt-info"><div class="pt-name">${s.name}</div><div class="pt-vals">3연속=×3 / 4=×8 / 5=×30<br>val:${s.val+game.extraSymVal}</div></div>`;
     }
     ptGrid.appendChild(d);
   }
 }
 buildPaytable();
 
-// SHOP — event delegation on container
+// SHOP
 const shopEl=document.getElementById('shop-content');
 shopEl.addEventListener('click',e=>{
   const btn=e.target.closest('button[data-perm],button[data-con],button[data-grid],button[data-bingo]');
@@ -121,35 +113,23 @@ shopEl.addEventListener('click',e=>{
   if(btn.dataset.bingo){
     const id=btn.dataset.bingo;
     const item=BINGO_ITEMS.find(i=>i.id===id);
-    if(game.buyBingo(id)){
-      updateBalance();
-      buildShop();
-      showUnlockPopup(item, item.desc);
-    }
+    if(game.buyBingo(id)){ updateBalance();buildShop();showUnlockPopup(item,item.desc);game.save(); }
   } else if(btn.dataset.perm){
     const id=btn.dataset.perm;
     const item=PERMANENT_ITEMS.find(i=>i.id===id);
-    if(game.unlockSymbol(id)){
-      updateBalance();
-      buildShop();
-      buildPaytable();
-      showUnlockPopup(SYM[item.sym], item.desc);
-    }
+    if(game.unlockSymbol(id)){ updateBalance();buildShop();buildPaytable();showUnlockPopup(SYM[item.sym],item.desc);game.save(); }
   } else if(btn.dataset.con){
     const id=btn.dataset.con;
     const item=CONSUMABLE_ITEMS.find(i=>i.id===id);
-    if(game.buyConsumable(id)){
-      updateBalance();
-      buildShop();
-      showConBuyPopup(item);
-    }
+    if(game.buyConsumable(id)){ updateBalance();buildShop();buildConsumableBar();showConBuyPopup(item);game.save(); }
   } else if(btn.dataset.grid){
     const id=btn.dataset.grid;
     const item=GRID_ITEMS.find(i=>i.id===id);
     if(game.buyGridItem(id)){
-      updateBalance();
-      buildShop();
-      showUnlockPopup({e:item.e,name:item.name}, item.desc);
+      updateBalance();buildShop();
+      buildGrid();renderGrid(); // auto-switch grid
+      showUnlockPopup({e:item.e,name:item.name},item.desc);
+      game.save();
     }
   }
 });
@@ -160,7 +140,6 @@ function buildShop(){
   const hg=document.createElement('div');
   hg.className='shop-section-title';hg.textContent='🔲 그리드 확장';
   shopEl.appendChild(hg);
-
   for(const item of GRID_ITEMS){
     const owned=game.unlockedGridSizes.has(item.size);
     const canAfford=game.balance>=item.price;
@@ -172,14 +151,12 @@ function buildShop(){
     btn.disabled=owned;
     btn.textContent=owned?'보유중':'💰'+item.price;
     d.innerHTML=`<span class="shop-emoji">${item.e}</span><div class="shop-info"><div class="shop-name">${item.name}</div><div class="shop-desc">${item.desc}</div></div>`;
-    d.appendChild(btn);
-    shopEl.appendChild(d);
+    d.appendChild(btn);shopEl.appendChild(d);
   }
 
   const h1=document.createElement('div');
   h1.className='shop-section-title';h1.textContent='🔓 영구 아이템 (심볼 해금)';
   shopEl.appendChild(h1);
-
   for(const item of PERMANENT_ITEMS){
     const sym=SYM[item.sym];
     const owned=game.unlockedSymIds.has(item.sym);
@@ -192,14 +169,12 @@ function buildShop(){
     btn.disabled=owned;
     btn.textContent=owned?'보유중':'💰'+item.price;
     d.innerHTML=`<span class="shop-emoji">${sym.e}</span><div class="shop-info"><div class="shop-name">${sym.name}</div><div class="shop-desc">${item.desc}</div></div>`;
-    d.appendChild(btn);
-    shopEl.appendChild(d);
+    d.appendChild(btn);shopEl.appendChild(d);
   }
 
   const hb=document.createElement('div');
-  hb.className='shop-section-title';hb.textContent='🎯 빙고 시스템';
+  hb.className='shop-section-title';hb.textContent='🎯 콤보 보너스';
   shopEl.appendChild(hb);
-
   for(const item of BINGO_ITEMS){
     const owned=game.bingoPurchased;
     const canAfford=game.balance>=item.price;
@@ -210,15 +185,13 @@ function buildShop(){
     btn.dataset.bingo=item.id;
     btn.disabled=owned;
     btn.textContent=owned?'보유중':'💰'+item.price;
-    d.innerHTML=`<span class="shop-emoji">${item.e}</span><div class="shop-info"><div class="shop-name">${item.name}</div><div class="shop-desc">${item.desc}<br><span style="color:#f0c020;font-size:.9em">2줄:×4배 / 3줄:×10배 / 4줄:×25배 / 풀:×300배</span></div></div>`;
-    d.appendChild(btn);
-    shopEl.appendChild(d);
+    d.innerHTML=`<span class="shop-emoji">${item.e}</span><div class="shop-info"><div class="shop-name">${item.name}</div><div class="shop-desc">같은 심볼 여러 라인 동시 당첨 시<br><span style="color:#f0c020">페어(×4) 트리플(×10) 쿼드(×25) 퀸테트(×50)</span><br>전체 라인 당첨 = FULL BINGO 🎆</div></div>`;
+    d.appendChild(btn);shopEl.appendChild(d);
   }
 
   const h3=document.createElement('div');
   h3.className='shop-section-title';h3.textContent='⚗️ 소모 아이템';
   shopEl.appendChild(h3);
-
   for(const item of CONSUMABLE_ITEMS){
     const count=game.ownedConsumables[item.id]||0;
     const canAfford=game.balance>=item.price;
@@ -229,12 +202,11 @@ function buildShop(){
     btn.dataset.con=item.id;
     btn.textContent='💰'+item.price;
     d.innerHTML=`<span class="shop-emoji">${item.e}</span><div class="shop-info"><div class="shop-name">${item.name}${count>0?` <span class="own-count">×${count}</span>`:''}</div><div class="shop-desc">${item.desc}</div></div>`;
-    d.appendChild(btn);
-    shopEl.appendChild(d);
+    d.appendChild(btn);shopEl.appendChild(d);
   }
 }
 
-// Consumable inventory bar — click to toggle pending (one at a time, consumed after spin)
+// Consumable bar — toggle pending
 function buildConsumableBar(){
   const bar=document.getElementById('con-bar');
   bar.innerHTML='';
@@ -248,16 +220,16 @@ function buildConsumableBar(){
     btn.title=isPending?item.name+' 취소 (대기중)':item.name+' 활성화';
     btn.innerHTML=`${item.e}<span class="con-count">×${count}</span>${isPending?'<span class="con-active-dot"></span>':''}`;
     btn.addEventListener('click',()=>{
-      const result=game.setPendingConsumable(id);
+      const r=game.setPendingConsumable(id);
       buildConsumableBar();
-      if(result==='set') showEffectToast(item);
+      if(r==='set') showEffectToast(item);
     });
     bar.appendChild(btn);
   }
 }
 
-// Unlock popup
-function showUnlockPopup(sym, desc){
+// Popups
+function showUnlockPopup(sym,desc){
   const popup=document.getElementById('unlock-popup');
   document.getElementById('up-emoji').textContent=sym.e;
   document.getElementById('up-name').textContent=sym.name+' 해금!';
@@ -266,8 +238,7 @@ function showUnlockPopup(sym, desc){
   popup.classList.add('popin');
   setTimeout(()=>popup.classList.remove('popin'),500);
 }
-
-function showUpgradePopup(upg, newLevel){
+function showUpgradePopup(upg,newLevel){
   const popup=document.getElementById('unlock-popup');
   document.getElementById('up-emoji').textContent=upg.e;
   document.getElementById('up-name').textContent=upg.name+' Lv.'+newLevel+'!';
@@ -276,7 +247,6 @@ function showUpgradePopup(upg, newLevel){
   popup.classList.add('popin');
   setTimeout(()=>popup.classList.remove('popin'),500);
 }
-
 function showConBuyPopup(item){
   const popup=document.getElementById('unlock-popup');
   document.getElementById('up-emoji').textContent=item.e;
@@ -286,7 +256,6 @@ function showConBuyPopup(item){
   popup.classList.add('popin');
   setTimeout(()=>popup.classList.remove('popin'),500);
 }
-
 document.getElementById('up-close').addEventListener('click',()=>{
   document.getElementById('unlock-popup').classList.add('hidden');
 });
@@ -294,37 +263,23 @@ document.getElementById('up-close').addEventListener('click',()=>{
 function showEffectToast(item){
   const t=document.getElementById('effect-toast');
   t.textContent=item.e+' '+item.name+' 활성화!';
-  t.classList.remove('hidden');
-  t.classList.add('toast-in');
+  t.classList.remove('hidden');t.classList.add('toast-in');
   clearTimeout(t._timer);
   t._timer=setTimeout(()=>{t.classList.add('hidden');t.classList.remove('toast-in');},2200);
 }
 
-// Multiplier modal
-document.getElementById('mult-btn').addEventListener('click',()=>{
-  buildMultModal();
-  document.getElementById('mult-modal').classList.remove('hidden');
-});
-document.getElementById('mult-close').addEventListener('click',()=>{
-  document.getElementById('mult-modal').classList.add('hidden');
-});
-document.getElementById('mult-modal').addEventListener('click',e=>{
-  if(e.target===document.getElementById('mult-modal'))
-    document.getElementById('mult-modal').classList.add('hidden');
-});
-// Tab switching
+// Multiplier modal with probabilities
+document.getElementById('mult-btn').addEventListener('click',()=>{ buildMultModal();document.getElementById('mult-modal').classList.remove('hidden'); });
+document.getElementById('mult-close').addEventListener('click',()=>document.getElementById('mult-modal').classList.add('hidden'));
+document.getElementById('mult-modal').addEventListener('click',e=>{ if(e.target===document.getElementById('mult-modal')) document.getElementById('mult-modal').classList.add('hidden'); });
 
 function buildMultModal(){
-  const multBonus = 1+(game.upgradeLevels['up_match_mult']||0)*0.20;
-  const valBonus  = 1+(game.upgradeLevels['up_sym_val']||0)*0.15;
+  const multBonus=1+(game.upgradeLevels['up_match_mult']||0)*0.20;
+  const valBonus=1+(game.upgradeLevels['up_sym_val']||0)*0.15;
+  const probs=game.getSymbolProbabilities();
 
-  // Match table
   const matchEl=document.getElementById('mult-match-table');
-  const rows=[
-    {label:'3개 연속', base:3},
-    {label:'4개 연속', base:8},
-    {label:'5개 연속', base:30},
-  ];
+  const rows=[{label:'3개 연속',base:3},{label:'4개 연속',base:8},{label:'5개 연속',base:30}];
   matchEl.innerHTML=rows.map(r=>{
     const actual=Math.round(r.base*multBonus*10)/10;
     return `<div class="mult-row">
@@ -333,17 +288,27 @@ function buildMultModal(){
     </div>`;
   }).join('');
 
-  // Symbol table
   const symEl=document.getElementById('mult-sym-table');
-  symEl.innerHTML=game._pool.filter(s=>!s.special||s.special==='mega').map(s=>{
-    const effectiveVal=Math.round(s.val*valBonus*10)/10;
+  symEl.innerHTML=game._pool.map(s=>{
+    const prob=probs[s.id]||0;
+    const pct=(prob*100).toFixed(1)+'%';
+    const row3prob=Math.pow(prob,3)*100;
+    const probStr=`<span class="mult-prob">${pct} / 3줄:${row3prob.toFixed(2)}%</span>`;
+    if(s.special==='wild'||s.special==='mega'){
+      const label=s.special==='wild'?'대체 심볼':`잭팟 val:3000`;
+      return `<div class="mult-row"><span class="mult-label">${s.e} ${s.name} ${probStr}</span><span class="mult-val">${label}</span></div>`;
+    }
+    if(s.special) return `<div class="mult-row"><span class="mult-label">${s.e} ${s.name} ${probStr}</span><span class="mult-val">스캐터</span></div>`;
+    const effectiveVal=Math.round((s.val+game.extraSymVal)*valBonus*10)/10;
+    const base=s.val+game.extraSymVal;
     return `<div class="mult-row">
-      <span class="mult-label">${s.e} ${s.name}</span>
-      <span class="mult-val">${effectiveVal}${valBonus>1?` <span class="mult-boosted">(기본 ${s.val})</span>`:''}</span>
+      <span class="mult-label">${s.e} ${s.name} ${probStr}</span>
+      <span class="mult-val">${effectiveVal}${valBonus>1||game.extraSymVal>0?` <span class="mult-boosted">(기본 ${base})</span>`:''}</span>
     </div>`;
   }).join('');
 }
 
+// Tabs
 document.getElementById('tab-slot').addEventListener('click',()=>switchTab('slot'));
 document.getElementById('tab-shop').addEventListener('click',()=>switchTab('shop'));
 document.getElementById('tab-upg').addEventListener('click',()=>switchTab('upg'));
@@ -361,121 +326,92 @@ function buildUpgradeTab(){
   const el=document.getElementById('upg-content');
   el.innerHTML='';
 
-  // Active perks section
+  // Active perks
   if(game.activePerks.length>0){
     const h=document.createElement('div');
     h.className='shop-section-title';h.textContent='🎯 특수 능력 (로그라이크)';
     el.appendChild(h);
-    const wrap=document.createElement('div');
-    wrap.className='perks-wrap';
+    const wrap=document.createElement('div');wrap.className='perks-wrap';
     game.activePerks.forEach(pid=>{
       const perk=MILESTONE_PERKS.find(p=>p.id===pid);
       if(!perk) return;
-      const d=document.createElement('div');
-      d.className='perk-chip';
+      const d=document.createElement('div');d.className='perk-chip';
       d.innerHTML=`<span class="perk-chip-e">${perk.e}</span><span class="perk-chip-name">${perk.name}</span>`;
-      d.title=perk.desc;
-      wrap.appendChild(d);
+      d.title=perk.desc;wrap.appendChild(d);
     });
     el.appendChild(wrap);
-    const spacer=document.createElement('div');spacer.style.height='8px';el.appendChild(spacer);
+    const sp=document.createElement('div');sp.style.height='8px';el.appendChild(sp);
   }
+
+  // Upgrades
+  const hUpg=document.createElement('div');hUpg.className='shop-section-title';hUpg.textContent='⬆️ 업그레이드';el.appendChild(hUpg);
   for(const upg of UPGRADES){
     const lv=game.upgradeLevels[upg.id]||0;
     const maxed=lv>=upg.maxLevel;
     const price=upgradePrice(upg,lv);
     const canAfford=game.balance>=price;
-    const multBonus = 1+(game.upgradeLevels['up_match_mult']||0)*0.20;
-    const valBonus  = 1+(game.upgradeLevels['up_sym_val']||0)*0.15;
+    const multBonus=1+(game.upgradeLevels['up_match_mult']||0)*0.20;
+    const valBonus=1+(game.upgradeLevels['up_sym_val']||0)*0.15;
     const scatterBonus=1+(game.upgradeLevels['up_scatter_bonus']||0)*0.25;
-    const megaBonus=1+(game.upgradeLevels['up_mega_jackpot']||0)*0.30;
+    const megaBns=1+(game.upgradeLevels['up_mega_jackpot']||0)*0.30;
     const wildPow=game.upgradeLevels['up_wild_power']||0;
     const statMap={
       up_match_mult:`배율 ×${multBonus.toFixed(2)}`,
       up_sym_val:`심볼가치 ×${valBonus.toFixed(2)}`,
       up_scatter_bonus:`스캐터 ×${scatterBonus.toFixed(2)}`,
-      up_mega_jackpot:`MEGA ×${megaBonus.toFixed(2)}`,
+      up_mega_jackpot:`MEGA ×${megaBns.toFixed(2)}`,
       up_wild_power:`WILD +${wildPow}카운트`,
     };
-    const bars=Array.from({length:upg.maxLevel},(_,i)=>
-      `<span class="lvbar${i<lv?' filled':''}"></span>`).join('');
-    const d=document.createElement('div');
-    d.className='upg-card'+(maxed?' maxed':'');
+    const bars=Array.from({length:upg.maxLevel},(_,i)=>`<span class="lvbar${i<lv?' filled':''}"></span>`).join('');
+    const d=document.createElement('div');d.className='upg-card'+(maxed?' maxed':'');
     const btn=document.createElement('button');
     btn.className='shop-btn'+(maxed?' owned':canAfford?'':' poor');
-    btn.dataset.upg=upg.id;
-    btn.disabled=maxed;
+    btn.dataset.upg=upg.id;btn.disabled=maxed;
     btn.textContent=maxed?'MAX':'💰'+price;
-    d.innerHTML=`
-      <div class="upg-head">
-        <span class="upg-icon">${upg.e}</span>
-        <div class="upg-meta">
-          <div class="upg-name">${upg.name}</div>
-          <div class="upg-stat">${statMap[upg.id]}</div>
-          <div class="lvbars">${bars}</div>
-        </div>
-      </div>
-      <div class="upg-desc">${upg.desc}</div>`;
-    d.appendChild(btn);
-    el.appendChild(d);
+    d.innerHTML=`<div class="upg-head"><span class="upg-icon">${upg.e}</span><div class="upg-meta"><div class="upg-name">${upg.name}</div><div class="upg-stat">${statMap[upg.id]}</div><div class="lvbars">${bars}</div></div></div><div class="upg-desc">${upg.desc}</div>`;
+    d.appendChild(btn);el.appendChild(d);
   }
   el.querySelectorAll('[data-upg]').forEach(btn=>{
     btn.addEventListener('click',()=>{
       const id=btn.dataset.upg;
       const upg=UPGRADES.find(u=>u.id===id);
-      if(game.buyUpgrade(id)){
-        updateBalance();
-        buildUpgradeTab();
-        showUpgradePopup(upg,game.upgradeLevels[id]);
-      }
+      if(game.buyUpgrade(id)){ updateBalance();buildUpgradeTab();showUpgradePopup(upg,game.upgradeLevels[id]);game.save(); }
     });
   });
-}
 
-async function buildRank(){
-  const el=document.getElementById('rank-content');
-  el.innerHTML='<div class="rank-loading">불러오는 중...</div>';
-  const rows=await getLeaderboard();
-  if(!rows||!rows.length){ el.innerHTML='<div class="rank-loading">아직 기록 없음</div>'; return; }
-  const myNick=playerNick;
-  el.innerHTML=`
-    <div class="rank-title">🏆 TOP 10</div>
-    ${rows.map((r,i)=>`
-      <div class="rank-row${r.nickname===myNick?' rank-me':''}">
-        <span class="rank-pos">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</span>
-        <span class="rank-nick">${r.nickname}</span>
-        <span class="rank-bal">${r.balance.toLocaleString()} 💰</span>
-      </div>`).join('')}
-    <button id="rank-submit" class="rank-submit-btn">내 점수 등록</button>
-  `;
-  document.getElementById('rank-submit').addEventListener('click', async()=>{
-    const btn=document.getElementById('rank-submit');
-    btn.textContent='등록 중...';btn.disabled=true;
-    await submitScore();
-    buildRank();
+  // Settings / Save / Reset
+  const hSet=document.createElement('div');hSet.className='shop-section-title';hSet.textContent='⚙️ 설정';el.appendChild(hSet);
+  const settingsWrap=document.createElement('div');settingsWrap.className='settings-wrap';
+
+  const saveBtn=document.createElement('button');
+  saveBtn.className='settings-btn';saveBtn.textContent='💾 저장';
+  saveBtn.addEventListener('click',()=>{ game.save(); showToastMsg('저장 완료!'); });
+
+  const resetBtn=document.createElement('button');
+  resetBtn.className='settings-btn settings-btn-danger';resetBtn.textContent='🗑️ 완전 초기화';
+  resetBtn.addEventListener('click',()=>{
+    if(confirm('모든 진행상황을 초기화할까요? 되돌릴 수 없습니다.')){ localStorage.removeItem('rein_save');location.reload(); }
   });
+
+  settingsWrap.appendChild(saveBtn);settingsWrap.appendChild(resetBtn);el.appendChild(settingsWrap);
 }
 
-function updateBalance(){document.getElementById('balance').textContent=game.balance.toLocaleString();}
-function updateSpinCounter(){
-  const el=document.getElementById('spin-counter');
-  if(!el) return;
-  const n=game.spinCount;
-  const next=MILESTONES.find(m=>m>n)||null;
-  const parts=['SPIN '+n];
-  if(next) parts.push(`→ 🎯${next}`);
-  el.textContent=parts.join('  ');
+function showToastMsg(msg){
+  const t=document.getElementById('effect-toast');
+  t.textContent=msg;t.classList.remove('hidden');t.classList.add('toast-in');
+  clearTimeout(t._timer);
+  t._timer=setTimeout(()=>{t.classList.add('hidden');t.classList.remove('toast-in');},2000);
 }
 
 // LEVER
 const lever=document.getElementById('lever');
-lever.addEventListener('click', ()=>{ if(!game.spinning) pullLever(); });
-lever.addEventListener('touchend', e=>{ e.preventDefault(); if(!game.spinning) pullLever(); });
+lever.addEventListener('click',()=>{ if(!game.spinning) pullLever(); });
+lever.addEventListener('touchend',e=>{ e.preventDefault();if(!game.spinning) pullLever(); });
 
 function pullLever(){
   lever.classList.add('pulled');
-  setTimeout(()=>lever.classList.remove('pulled'), 400);
-  setTimeout(doSpin, 150);
+  setTimeout(()=>lever.classList.remove('pulled'),400);
+  setTimeout(doSpin,150);
 }
 
 async function doSpin(){
@@ -490,11 +426,10 @@ async function doSpin(){
   document.getElementById('win-banner').classList.add('hidden');
   document.getElementById('win-lines').innerHTML='';
 
-  // Activate pending consumable now (consumed after spin)
   const usedItem=game.activatePendingConsumable();
   if(usedItem) buildConsumableBar();
 
-  const {grid, wasFree}=game.spin();
+  const {grid,wasFree}=game.spin();
   updateBalance();
   updateSpinCounter();
 
@@ -519,6 +454,7 @@ async function doSpin(){
 
   await delay(450);
   const result=game.resolve();
+  game.save(); // auto-save after every spin
 
   await revealWinsSequentially(result);
 
@@ -527,34 +463,21 @@ async function doSpin(){
   buildConsumableBar();
   game.spinning=false;
 
-  // Show milestone perk picker if needed
-  if(game.pendingMilestone){
-    showMilestoneModal(game.pendingMilestone);
-  }
+  if(game.pendingMilestone) showMilestoneModal(game.pendingMilestone);
 }
 
-// Build sorted reveal list: sym wins (low→high payout) then scatters then specials
 function buildRevealList(result){
   const list=[];
-
-  // Symbol wins sorted by payout ascending
   const symWins=[...result.wins].map(w=>{
-    const payout=Math.round(SYM[w.sym].val*w.mult*(game.bet/10)*result.multiplier);
+    const payout=Math.round((SYM[w.sym].val+game.extraSymVal)*(1+(game.upgradeLevels['up_sym_val']||0)*0.15)*w.mult*result.multiplier);
     return{type:'sym',w,payout,cells:[...w.cells]};
   }).sort((a,b)=>a.payout-b.payout);
   list.push(...symWins);
-
-  // Scatter items
-  for(const s of result.scatters){
-    list.push({type:'scatter',s});
-  }
-
-  // Specials last
+  for(const s of result.scatters) list.push({type:'scatter',s});
   if(result.doubleActive) list.push({type:'double'});
   if(result.multiplier>1) list.push({type:'multiplier'});
   const mega=result.scatters.filter(s=>s.sym.special==='mega').length;
-  if(mega>=3) list.push({type:'mega',mega});
-
+  if(mega>=2) list.push({type:'mega',mega});
   return list;
 }
 
@@ -562,21 +485,16 @@ async function revealWinsSequentially(result){
   const wlEl=document.getElementById('win-lines');
   wlEl.innerHTML='';
 
-  if(result.total===0 && !result.shielded){
-    if(result.shielded) updateBannerShield();
-    return;
-  }
+  if(result.total===0&&!result.shielded) return;
 
   const list=buildRevealList(result);
   let runningTotal=0;
 
   for(const item of list){
     await delay(700);
-
     if(item.type==='sym'){
       item.cells.forEach(([r,c])=>{
-        cellEls[r][c].classList.add('win');
-        cellEls[r][c].classList.add('win-flash');
+        cellEls[r][c].classList.add('win','win-flash');
         setTimeout(()=>cellEls[r][c].classList.remove('win-flash'),600);
       });
       runningTotal+=item.payout;
@@ -584,83 +502,57 @@ async function revealWinsSequentially(result){
       tag.className='wl-item wl-line wl-reveal';
       tag.textContent=`${SYM[item.w.sym].e} ${item.w.name||''} ${item.w.count}개×${item.w.mult} +${item.payout}`;
       wlEl.appendChild(tag);
-      updateBannerRunning(runningTotal, result);
-
+      updateBannerRunning(runningTotal);
     } else if(item.type==='scatter'){
       const s=item.s;
       cellEls[s.r][s.c].classList.add('win','win-flash');
       setTimeout(()=>cellEls[s.r][s.c].classList.remove('win-flash'),400);
-      const tag=document.createElement('span');
-      tag.className='wl-item wl-scatter wl-reveal';
+      const tag=document.createElement('span');tag.className='wl-item wl-scatter wl-reveal';
       tag.textContent=`${s.sym.e} ${s.sym.name} 스캐터`;
       wlEl.appendChild(tag);
-
     } else if(item.type==='double'){
-      const tag=document.createElement('span');
-      tag.className='wl-item wl-double wl-reveal';
-      tag.textContent='⚡ 전체 ×2!';
-      wlEl.appendChild(tag);
-
+      const tag=document.createElement('span');tag.className='wl-item wl-double wl-reveal';
+      tag.textContent='⚡ 전체 ×2!';wlEl.appendChild(tag);
     } else if(item.type==='multiplier'){
-      const tag=document.createElement('span');
-      tag.className='wl-item wl-double wl-reveal';
-      tag.textContent=`✖️ 당첨금 ×${result.multiplier}`;
-      wlEl.appendChild(tag);
-
+      const tag=document.createElement('span');tag.className='wl-item wl-double wl-reveal';
+      tag.textContent=`✖️ 당첨금 ×${result.multiplier}`;wlEl.appendChild(tag);
     } else if(item.type==='mega'){
-      const tag=document.createElement('span');
-      tag.className='wl-item wl-mega wl-reveal';
-      tag.textContent=`🌟 MEGA JACKPOT ×${item.mega}`;
-      wlEl.appendChild(tag);
+      const tag=document.createElement('span');tag.className='wl-item wl-mega wl-reveal';
+      tag.textContent=`🌟 MEGA JACKPOT ×${item.mega}`;wlEl.appendChild(tag);
     }
-
-    // scroll win-lines into view
     wlEl.scrollLeft=wlEl.scrollWidth;
   }
 
   // Perk bonuses
-  if(result.chargeBonus>0){
-    await delay(700);
-    const tag=document.createElement('span');
-    tag.className='wl-item wl-perk wl-reveal';
-    tag.textContent=`⚡ 패배 충전 +${result.chargeBonus}`;
-    wlEl.appendChild(tag); wlEl.scrollLeft=wlEl.scrollWidth;
-  }
-  if(result.streakBonus>0){
-    await delay(700);
-    const tag=document.createElement('span');
-    tag.className='wl-item wl-perk wl-reveal';
-    tag.textContent=`🔥 연승 보너스 +${result.streakBonus}`;
-    wlEl.appendChild(tag); wlEl.scrollLeft=wlEl.scrollWidth;
-  }
-  if(result.fruitBonus>0){
-    await delay(700);
-    const tag=document.createElement('span');
-    tag.className='wl-item wl-perk wl-reveal';
-    tag.textContent=`🍓 과일 콤보 +${result.fruitBonus}`;
-    wlEl.appendChild(tag); wlEl.scrollLeft=wlEl.scrollWidth;
+  for(const [key,label] of [['chargeBonus','⚡ 패배 충전'],['streakBonus','🔥 연승 보너스'],['fruitBonus','🍓 과일 콤보']]){
+    if(result[key]>0){
+      await delay(700);
+      const tag=document.createElement('span');tag.className='wl-item wl-perk wl-reveal';
+      tag.textContent=`${label} +${result[key]}`;
+      wlEl.appendChild(tag);wlEl.scrollLeft=wlEl.scrollWidth;
+    }
   }
 
-  // Bingo bonus reveal
-  if(result.bingoBonus>0){
+  // Combo (bingo) reveals — per symbol group
+  for(const grp of (result.bingoGroups||[])){
     await delay(700);
-    const tag=document.createElement('span');
-    tag.className='wl-item wl-bingo wl-reveal';
-    const label=result.fullBingo?'🎯 FULL BINGO!!!':
-      result.bingoCount>=4?'🎯 트리플 빙고!!':
-      result.bingoCount>=3?'🎯 더블 빙고!':'🎯 빙고!';
-    tag.textContent=`${label} +${result.bingoBonus}`;
-    wlEl.appendChild(tag);
-    wlEl.scrollLeft=wlEl.scrollWidth;
-    if(result.fullBingo) showFireworks();
+    const tag=document.createElement('span');tag.className='wl-item wl-bingo wl-reveal';
+    tag.textContent=`🎯 ${SYM[grp.sym].e} ${SYM[grp.sym].name} ${grp.name}! +${grp.bonus}`;
+    wlEl.appendChild(tag);wlEl.scrollLeft=wlEl.scrollWidth;
+  }
+  if(result.fullBingo){
+    await delay(700);
+    const tag=document.createElement('span');tag.className='wl-item wl-bingo wl-reveal';
+    tag.textContent='🎆 FULL BINGO!!! 전체 라인 달성!';
+    wlEl.appendChild(tag);wlEl.scrollLeft=wlEl.scrollWidth;
+    showFireworks();
   }
 
-  // Final big banner
   if(result.total>0) await showBannerFinal(result);
-  if(result.shielded && result.total===0) showBannerShield();
+  if(result.shielded&&result.total===0) showBannerShield();
 }
 
-function updateBannerRunning(running, result){
+function updateBannerRunning(running){
   const banner=document.getElementById('win-banner');
   document.getElementById('wb-amount').textContent='+'+running+' coins';
   document.getElementById('wb-detail').textContent='집계 중...';
@@ -675,47 +567,45 @@ async function showBannerFinal(result){
   setTimeout(()=>amtEl.classList.remove('count-up'),600);
   document.getElementById('wb-amount').textContent='+'+result.total+' coins';
   const parts=[];
-  if(result.symWin) parts.push('심볼: +'+result.symWin+(result.multiplier>1?` (×${result.multiplier})`:''));
-  if(result.scatterWin) parts.push('스캐터: +'+result.scatterWin);
-  if(result.chargeBonus) parts.push('충전: +'+result.chargeBonus);
-  if(result.streakBonus) parts.push('연승: +'+result.streakBonus);
-  if(result.fruitBonus) parts.push('콤보: +'+result.fruitBonus);
-  if(result.bingoBonus) parts.push('빙고: +'+result.bingoBonus);
+  if(result.symWin) parts.push('심볼:+'+result.symWin+(result.multiplier>1?` (×${result.multiplier})`:''));
+  if(result.scatterWin) parts.push('스캐터:+'+result.scatterWin);
+  if(result.chargeBonus) parts.push('충전:+'+result.chargeBonus);
+  if(result.streakBonus) parts.push('연승:+'+result.streakBonus);
+  if(result.fruitBonus) parts.push('콤보:+'+result.fruitBonus);
+  if(result.bingoBonus) parts.push('빙고:+'+result.bingoBonus);
   document.getElementById('wb-detail').textContent=parts.join(' / ');
   banner.classList.remove('hidden');
 }
 
+function showBannerShield(){
+  const banner=document.getElementById('win-banner');
+  document.getElementById('wb-amount').textContent='🛡️ 보호 발동';
+  document.getElementById('wb-detail').textContent='패배시 코인 반환';
+  banner.classList.remove('hidden');
+}
+
+// Milestone perk modal
 function showMilestoneModal(spinCount){
   const modal=document.getElementById('milestone-modal');
   const choices=game.getMilestoneChoices();
-  if(!choices.length){ game.pendingMilestone=null; return; }
-
+  if(!choices.length){ game.pendingMilestone=null;return; }
   document.getElementById('ms-title').textContent='🎯 '+spinCount+'회 달성!';
-  document.getElementById('ms-sub').textContent='특수 능력을 하나 선택하세요 — 영구 적용됩니다';
-
+  document.getElementById('ms-sub').textContent='특수 능력을 하나 선택하세요 — 영구 적용';
   const perksEl=document.getElementById('ms-perks');
   perksEl.innerHTML='';
   choices.forEach(perk=>{
-    const card=document.createElement('div');
-    card.className='ms-perk-card';
+    const card=document.createElement('div');card.className='ms-perk-card';
     card.innerHTML=`<div class="ms-perk-e">${perk.e}</div><div class="ms-perk-name">${perk.name}</div><div class="ms-perk-desc">${perk.desc}</div>`;
     card.addEventListener('click',()=>{
       game.choosePerk(perk.id);
       modal.classList.add('hidden');
-      buildPaytable();
-      updateSpinCounter();
-      // Show what was chosen
+      buildPaytable();updateSpinCounter();
       showUnlockPopup({e:perk.e,name:perk.name},perk.desc);
+      game.save();
     });
     perksEl.appendChild(card);
   });
-
   modal.classList.remove('hidden');
-}
-
-function buildActivePerks(){
-  // Show in the upg tab or slot view — for now, show in topbar or as a small banner
-  // We'll show in UPG tab
 }
 
 function showFireworks(){
@@ -724,31 +614,21 @@ function showFireworks(){
   document.body.appendChild(overlay);
   function burst(cx,cy){
     for(let i=0;i<12;i++){
-      const p=document.createElement('div');
-      p.className='fw-particle';
+      const p=document.createElement('div');p.className='fw-particle';
       const angle=Math.random()*360;
       const dist=40+Math.random()*80;
-      const dx=Math.cos(angle*Math.PI/180)*dist;
-      const dy=Math.sin(angle*Math.PI/180)*dist;
       p.style.left=cx+'%';p.style.top=cy+'%';
       p.style.background=`hsl(${Math.random()*360},100%,65%)`;
-      p.style.setProperty('--dx',dx+'px');p.style.setProperty('--dy',dy+'px');
+      p.style.setProperty('--dx',Math.cos(angle*Math.PI/180)*dist+'px');
+      p.style.setProperty('--dy',Math.sin(angle*Math.PI/180)*dist+'px');
       p.style.animationDuration=(.6+Math.random()*.6)+'s';
       overlay.appendChild(p);
     }
   }
   burst(30,30);burst(70,25);burst(50,50);burst(20,65);burst(80,60);
-  setTimeout(()=>{ burst(40,20);burst(60,70);burst(25,45); },600);
+  setTimeout(()=>{burst(40,20);burst(60,70);burst(25,45);},600);
   setTimeout(()=>overlay.remove(),3500);
 }
-
-function showBannerShield(){
-  const banner=document.getElementById('win-banner');
-  document.getElementById('wb-amount').textContent='🛡️ 보호 발동';
-  document.getElementById('wb-detail').textContent='패배시 베팅 반환';
-  banner.classList.remove('hidden');
-}
-
 
 function updateHistory(){
   const el=document.getElementById('history');
@@ -759,6 +639,16 @@ function updateHistory(){
   }).join('');
 }
 
+function updateBalance(){document.getElementById('balance').textContent=game.balance.toLocaleString();}
+function updateSpinCounter(){
+  const el=document.getElementById('spin-counter');
+  if(!el) return;
+  const n=game.spinCount;
+  const next=MILESTONES.find(m=>m>n)||null;
+  el.textContent='SPIN '+n+(next?`  → 🎯${next}`:'');
+}
+
 updateBalance();
 updateSpinCounter();
 buildConsumableBar();
+updateHistory();

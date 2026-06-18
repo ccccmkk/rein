@@ -477,6 +477,17 @@ body{
   color:#000;font-size:.9em;font-weight:bold;font-family:inherit;cursor:pointer;
 }
 
+.settings-wrap{display:flex;gap:8px;flex-wrap:wrap;padding:4px 0}
+.settings-btn{
+  padding:10px 18px;border-radius:10px;border:1px solid var(--border);
+  background:#1a1030;color:var(--text);font-family:inherit;font-size:.8em;cursor:pointer;
+  transition:background .1s;
+}
+.settings-btn:hover{background:#2a1848}
+.settings-btn-danger{border-color:#ff4444;color:#ff6666}
+.settings-btn-danger:hover{background:#3a1020}
+.mult-prob{font-size:.68em;color:var(--dim);margin-left:4px}
+
 /* SPIN COUNTER */
 .spin-counter{
   font-size:.65em;color:var(--dim);letter-spacing:1px;
