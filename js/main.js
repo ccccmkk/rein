@@ -643,7 +643,7 @@ function showMilestoneModal(spinCount){
       modal.classList.add('hidden');
       buildPaytable();updateSpinCounter();
       showUnlockPopup({e:perk.e,name:perk.name},perk.desc);
-      game.save();
+      game.save(); serverSave();
     });
     perksEl.appendChild(card);
   });
