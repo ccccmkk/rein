@@ -47,7 +47,7 @@ function buildPaytable(){
     } else if(s.special==='wild'){
       d.innerHTML=`<span class="pt-emoji">${s.e}</span><div class="pt-info"><div class="pt-name">${s.name}</div><div class="pt-vals">아무 심볼 대체</div></div>`;
     } else {
-      d.innerHTML=`<span class="pt-emoji">${s.e}</span><div class="pt-info"><div class="pt-name">${s.name}</div><div class="pt-vals">3=×3 4=×8 5=×20 6+=×50<br>val:${s.val}</div></div>`;
+      d.innerHTML=`<span class="pt-emoji">${s.e}</span><div class="pt-info"><div class="pt-name">${s.name}</div><div class="pt-vals">왼쪽연속 3=×3 4=×8 5=×30<br>val:${s.val}</div></div>`;
     }
     ptGrid.appendChild(d);
   }

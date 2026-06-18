@@ -174,39 +174,41 @@ class SlotGame{
 
   resolve(){
     const flat=this.grid.flat();
-    // up_wild_power: each level adds +1 to wild count
+    const multBonus = 1 + (this.upgradeLevels['up_match_mult']||0)*0.20;
+    const valBonus  = 1 + (this.upgradeLevels['up_sym_val']||0)*0.15;
     const wildPowerBonus = this.upgradeLevels['up_wild_power']||0;
-    const wildCount = flat.filter(id=>id==='wild').length;
-    const effectiveWild = wildCount>0 ? wildCount+wildPowerBonus : 0;
-
-    // Count each normal symbol
-    const cnt={};
-    for(let r=0;r<5;r++) for(let c=0;c<5;c++){
-      const id=this.grid[r][c];
-      const sym=SYM[id];
-      if(!sym?.special || sym.special==='mega') cnt[id]=(cnt[id]||0)+1;
-    }
 
     const wins=[];
     const winCells=new Set();
 
-    // up_match_mult: each level +20% to base multipliers
-    const multBonus = 1 + (this.upgradeLevels['up_match_mult']||0)*0.20;
-    // up_sym_val: each level +15% to symbol value
-    const valBonus  = 1 + (this.upgradeLevels['up_sym_val']||0)*0.15;
-
-    for(const [id,base] of Object.entries(cnt)){
-      if(id==='wild') continue;
-      const total = id==='mega' ? base : base+effectiveWild;
-      if(total<3) continue;
-      const baseMult = total>=8?100: total>=6?50: total>=5?20: total>=4?8: 3;
-      const mult = Math.round(baseMult * multBonus * 10)/10;
-      const cells=[];
-      for(let r=0;r<5;r++) for(let c=0;c<5;c++){
-        if(this.grid[r][c]===id || (this.grid[r][c]==='wild' && id!=='mega')) cells.push([r,c]);
+    // Check each row: consecutive match from LEFT, WILD substitutes
+    for(let r=0;r<5;r++){
+      const row=this.grid[r];
+      // find the target symbol (first non-wild)
+      let target=null;
+      for(let c=0;c<5;c++){
+        if(row[c]!=='wild'){target=row[c];break;}
       }
-      cells.forEach(([r,c])=>winCells.add(`${r},${c}`));
-      wins.push({sym:id,count:total,mult,cells});
+      if(!target) continue; // all wilds — skip (rare)
+
+      // count consecutive from left: target or wild
+      let count=0;
+      const cells=[];
+      for(let c=0;c<5;c++){
+        const id=row[c];
+        const isWild=id==='wild';
+        if(id===target || isWild){
+          // wild power: each wild counts as 1+bonus
+          count += isWild ? 1+wildPowerBonus : 1;
+          cells.push([r,c]);
+        } else break; // chain broken
+      }
+
+      if(cells.length<3) continue;
+      const baseMult = cells.length>=5?30: cells.length>=4?8: 3;
+      const mult = Math.round(baseMult * multBonus * 10)/10;
+      cells.forEach(([rr,cc])=>winCells.add(`${rr},${cc}`));
+      wins.push({sym:target,count:cells.length,mult,cells});
     }
 
     // Scatter specials
