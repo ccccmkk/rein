@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>REIN — City RL Simulation</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <div id="sidebar">
+      <div class="brand">
+        <div class="brand-title">REIN</div>
+        <div class="brand-sub">Reinforcement City Sim</div>
+      </div>
+
+      <div class="section">
+        <div class="controls">
+          <button id="btnStart">&#9654; Start</button>
+          <button id="btnPause" disabled>&#9646;&#9646; Pause</button>
+          <button id="btnReset">&#8635; Reset</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="slider-row">
+          <label>Speed <span id="lblSpeed">5&#215;</span></label>
+          <input type="range" id="sldSpeed" min="1" max="40" value="5">
+        </div>
+        <div class="slider-row">
+          <label>Population <span id="lblPop">30</span></label>
+          <input type="range" id="sldPop" min="5" max="80" value="30">
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">STATS</div>
+        <div class="stat"><span>Tick</span><span id="sTick">0</span></div>
+        <div class="stat"><span>Alive</span><span id="sAlive">0</span></div>
+        <div class="stat"><span>Deaths</span><span id="sDeaths">0</span></div>
+        <div class="stat"><span>Avg Lifespan</span><span id="sLife">&#8212;</span></div>
+        <div class="stat"><span>Generation</span><span id="sGen">1</span></div>
+        <div class="stat"><span>Epsilon &#949;</span><span id="sEps">1.000</span></div>
+        <div class="stat"><span>Memory</span><span id="sMem">0</span></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">AVG NEEDS</div>
+        <div class="bar-row"><span>Hunger</span><div class="bar"><div id="bHunger" class="bfill c-food"></div></div></div>
+        <div class="bar-row"><span>Health</span><div class="bar"><div id="bHealth" class="bfill c-hosp"></div></div></div>
+        <div class="bar-row"><span>Happy</span><div class="bar"><div id="bHappy" class="bfill c-park"></div></div></div>
+        <div class="bar-row"><span>Energy</span><div class="bar"><div id="bEnergy" class="bfill c-work"></div></div></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">LEGEND</div>
+        <div class="legend-item"><i class="dot" style="background:#c0392b"></i>Home</div>
+        <div class="legend-item"><i class="dot" style="background:#e67e22"></i>Restaurant</div>
+        <div class="legend-item"><i class="dot" style="background:#27ae60"></i>Park</div>
+        <div class="legend-item"><i class="dot" style="background:#2980b9"></i>Hospital</div>
+        <div class="legend-item"><i class="dot" style="background:#8e44ad"></i>Workplace</div>
+        <div class="legend-item"><i class="dot" style="background:#f0f0f0"></i>Person (alive)</div>
+      </div>
+    </div>
+
+    <div id="view">
+      <canvas id="c"></canvas>
+    </div>
+  </div>
+
+  <script src="js/city.js"></script>
+  <script src="js/agent.js"></script>
+  <script src="js/dqn.js"></script>
+  <script src="js/simulation.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
