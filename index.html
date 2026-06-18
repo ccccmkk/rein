@@ -2,27 +2,43 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0f0a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="REIN Roulette">
+  <link rel="manifest" href="manifest.json">
   <title>REIN — Roulette</title>
   <script src="https://cdn.jsdelivr.net/npm/three@0.140.0/build/three.min.js"></script>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <div id="app">
+    <!-- mobile top bar -->
+    <div id="topbar">
+      <span class="brand">REIN <span class="brand-sub">ROULETTE</span></span>
+      <div class="top-balance">
+        <span class="balance-label">CHIPS</span>
+        <span id="balance">1,000</span>
+      </div>
+    </div>
+
+    <!-- 3D wheel -->
     <div id="wheel-area">
-      <div id="marker">▼</div>
+      <div id="marker">&#9660;</div>
       <div id="result-banner" class="hidden">
         <div id="result-num">0</div>
         <div id="result-msg">+0</div>
       </div>
     </div>
 
-    <div id="sidebar">
-      <div class="brand">REIN<span class="brand-sub"> ROULETTE</span></div>
-
-      <div class="balance-box">
+    <!-- betting panel -->
+    <div id="panel">
+      <!-- desktop-only balance -->
+      <div class="desk-balance">
         <div class="balance-label">CHIPS</div>
-        <div id="balance">1,000</div>
+        <div id="balance-desk">1,000</div>
       </div>
 
       <div class="section-label">CHIP</div>
@@ -36,18 +52,18 @@
 
       <div class="section-label">BETS</div>
       <div class="bet-grid">
-        <button class="bet-btn red" data-bet="red">RED<br><small>×2</small></button>
-        <button class="bet-btn blk" data-bet="black">BLACK<br><small>×2</small></button>
-        <button class="bet-btn mid" data-bet="odd">ODD<br><small>×2</small></button>
-        <button class="bet-btn mid" data-bet="even">EVEN<br><small>×2</small></button>
-        <button class="bet-btn mid" data-bet="low">1–18<br><small>×2</small></button>
-        <button class="bet-btn mid" data-bet="high">19–36<br><small>×2</small></button>
-        <button class="bet-btn doz" data-bet="d1">1st 12<br><small>×3</small></button>
-        <button class="bet-btn doz" data-bet="d2">2nd 12<br><small>×3</small></button>
-        <button class="bet-btn doz" data-bet="d3">3rd 12<br><small>×3</small></button>
+        <button class="bet-btn red" data-bet="red">RED<br><small>&times;2</small></button>
+        <button class="bet-btn blk" data-bet="black">BLACK<br><small>&times;2</small></button>
+        <button class="bet-btn mid" data-bet="odd">ODD<br><small>&times;2</small></button>
+        <button class="bet-btn mid" data-bet="even">EVEN<br><small>&times;2</small></button>
+        <button class="bet-btn mid" data-bet="low">1&ndash;18<br><small>&times;2</small></button>
+        <button class="bet-btn mid" data-bet="high">19&ndash;36<br><small>&times;2</small></button>
+        <button class="bet-btn doz" data-bet="d1">1st 12<br><small>&times;3</small></button>
+        <button class="bet-btn doz" data-bet="d2">2nd 12<br><small>&times;3</small></button>
+        <button class="bet-btn doz" data-bet="d3">3rd 12<br><small>&times;3</small></button>
       </div>
 
-      <div class="section-label">NUMBER <small style="color:#666">×36</small></div>
+      <div class="section-label">NUMBER <small style="color:#555">&times;36</small></div>
       <div class="num-grid" id="numGrid"></div>
 
       <div class="bet-summary">
@@ -59,6 +75,7 @@
 
       <div class="section-label">HISTORY</div>
       <div id="history"></div>
+      <div style="height:env(safe-area-inset-bottom,12px)"></div>
     </div>
   </div>
 
