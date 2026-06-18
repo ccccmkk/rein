@@ -56,16 +56,14 @@ body{
 .gs-btn.active{border-color:var(--gold);color:var(--gold);background:#1a1400}
 .gs-btn.locked{opacity:.35;cursor:default}
 
-/* LEVER — pulls top-knob DOWN around bottom pivot */
+/* LEVER — knob at top, pulls straight DOWN */
 #lever-wrap{
   display:flex;flex-direction:column;align-items:center;
   flex-shrink:0;width:48px;user-select:none;cursor:pointer;
-  justify-content:flex-end;padding-bottom:4px;
+  justify-content:center;
 }
 #lever{
-  position:relative;width:48px;height:130px;
-  transform-origin:bottom center;
-  transition:transform .18s cubic-bezier(.4,0,.2,1);
+  position:relative;width:48px;height:140px;
 }
 #lever-base{
   position:absolute;bottom:0;left:50%;transform:translateX(-50%);
@@ -75,11 +73,12 @@ body{
   box-shadow:0 0 8px #9955ff44;
 }
 #lever-rod{
-  position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
-  width:8px;height:110px;
+  position:absolute;top:32px;left:50%;transform:translateX(-50%);
+  width:8px;height:90px;
   background:linear-gradient(90deg,#5522aa,#9955ff,#5522aa);
   border-radius:4px;
   box-shadow:0 0 8px #9955ff66;
+  transition:height .2s cubic-bezier(.4,0,.2,1), top .2s cubic-bezier(.4,0,.2,1);
 }
 #lever-knob{
   position:absolute;top:0;left:50%;transform:translateX(-50%);
@@ -87,16 +86,16 @@ body{
   background:radial-gradient(circle at 35% 35%, #ff7777, #cc2222);
   border:2px solid #ff5555;
   box-shadow:0 0 14px #ff444499;
-  transition:box-shadow .18s;
+  transition:top .2s cubic-bezier(.4,0,.2,1), box-shadow .2s;
 }
-/* pulled = whole lever rotates forward ~40deg around bottom */
-#lever.pulled{ transform:rotate(40deg); }
-#lever.pulled #lever-knob{ box-shadow:0 0 28px #ff4444; }
-#lever.lever-deny{ animation:lever-deny .4s ease; }
+/* pulled = knob slides down, rod shrinks */
+#lever.pulled #lever-knob{ top:70px; box-shadow:0 0 28px #ff4444; }
+#lever.pulled #lever-rod{ top:102px; height:18px; }
+#lever.lever-deny #lever-knob{ animation:lever-deny .4s ease; }
 @keyframes lever-deny{
-  0%,100%{transform:rotate(0deg)}
-  30%{transform:rotate(-8deg)}
-  70%{transform:rotate(8deg)}
+  0%,100%{left:50%}
+  30%{left:44%}
+  70%{left:56%}
 }
 .cell{
   aspect-ratio:1;

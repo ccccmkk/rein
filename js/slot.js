@@ -211,10 +211,13 @@ class SlotGame{
 
     const n=this.gridSize;
 
-    // 체크할 라인들: 각 행 + 대각선 2개
+    // 체크할 라인들: 행 + 열 + 대각선 2개
     const lines=[];
     for(let r=0;r<n;r++){
       lines.push({name:`${r+1}행`, coords:Array.from({length:n},(_,c)=>[r,c])});
+    }
+    for(let c=0;c<n;c++){
+      lines.push({name:`${c+1}열`, coords:Array.from({length:n},(_,r)=>[r,c])});
     }
     lines.push({name:'↘대각', coords:Array.from({length:n},(_,i)=>[i,i])});
     lines.push({name:'↙대각', coords:Array.from({length:n},(_,i)=>[i,n-1-i])});
