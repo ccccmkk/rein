@@ -274,6 +274,45 @@ function showEffectToast(item){
 }
 
 // Tab switching
+// Multiplier modal
+document.getElementById('mult-btn').addEventListener('click',()=>{
+  buildMultModal();
+  document.getElementById('mult-modal').classList.remove('hidden');
+});
+document.getElementById('mult-close').addEventListener('click',()=>{
+  document.getElementById('mult-modal').classList.add('hidden');
+});
+
+function buildMultModal(){
+  const multBonus = 1+(game.upgradeLevels['up_match_mult']||0)*0.20;
+  const valBonus  = 1+(game.upgradeLevels['up_sym_val']||0)*0.15;
+
+  // Match table
+  const matchEl=document.getElementById('mult-match-table');
+  const rows=[
+    {label:'3개 연속', base:3},
+    {label:'4개 연속', base:8},
+    {label:'5개 연속', base:30},
+  ];
+  matchEl.innerHTML=rows.map(r=>{
+    const actual=Math.round(r.base*multBonus*10)/10;
+    return `<div class="mult-row">
+      <span class="mult-label">${r.label}</span>
+      <span class="mult-val">×${actual}${multBonus>1?` <span class="mult-boosted">(기본 ×${r.base})</span>`:''}</span>
+    </div>`;
+  }).join('');
+
+  // Symbol table
+  const symEl=document.getElementById('mult-sym-table');
+  symEl.innerHTML=game._pool.filter(s=>!s.special||s.special==='mega').map(s=>{
+    const effectiveVal=Math.round(s.val*valBonus*10)/10;
+    return `<div class="mult-row">
+      <span class="mult-label">${s.e} ${s.name}</span>
+      <span class="mult-val">${effectiveVal}${valBonus>1?` <span class="mult-boosted">(기본 ${s.val})</span>`:''}</span>
+    </div>`;
+  }).join('');
+}
+
 document.getElementById('tab-slot').addEventListener('click',()=>switchTab('slot'));
 document.getElementById('tab-shop').addEventListener('click',()=>switchTab('shop'));
 document.getElementById('tab-upg').addEventListener('click',()=>switchTab('upg'));

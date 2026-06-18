@@ -180,7 +180,7 @@ body{
 
 /* CONTROLS */
 #controls{
-  display:flex;align-items:center;gap:8px;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
   padding:8px 10px;flex-shrink:0;
   background:var(--panel);border-top:1px solid var(--border);
   border-bottom:1px solid var(--border);
@@ -374,6 +374,49 @@ body{
 }
 .popin{animation:card-popin .4s cubic-bezier(.34,1.56,.64,1)}
 @keyframes card-popin{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* MULT BUTTON */
+.mult-btn{
+  padding:8px 16px;border-radius:20px;border:1px solid var(--purple);
+  background:#1a1030;color:var(--purple);
+  font-family:inherit;font-size:.78em;font-weight:bold;
+  cursor:pointer;letter-spacing:1px;transition:all .15s;flex-shrink:0;
+}
+.mult-btn:hover{background:#2a1848;box-shadow:0 0 10px #9955ff44}
+
+/* MULT MODAL */
+#mult-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.8);
+  display:flex;align-items:center;justify-content:center;z-index:998;
+}
+#mult-card{
+  background:linear-gradient(135deg,#120825,#1e0f38);
+  border:2px solid var(--purple);border-radius:20px;
+  padding:24px 20px;width:90%;max-width:340px;
+  max-height:80vh;overflow-y:auto;
+}
+.mult-modal-title{
+  font-size:1em;font-weight:bold;color:var(--gold);
+  letter-spacing:3px;text-align:center;margin-bottom:16px;
+}
+.mult-section-hd{
+  font-size:.65em;color:var(--purple);letter-spacing:2px;
+  padding:6px 0 4px;border-bottom:1px solid var(--border);margin-bottom:8px;
+}
+#mult-lines-section{margin-bottom:14px}
+.mult-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:6px 8px;border-radius:8px;margin-bottom:3px;
+  background:#1a1030;
+}
+.mult-label{font-size:.78em;color:var(--text)}
+.mult-val{font-size:.82em;font-weight:bold;color:var(--gold)}
+.mult-boosted{font-size:.75em;color:var(--dim);font-weight:normal}
+#mult-close{
+  width:100%;margin-top:14px;padding:10px;border-radius:10px;border:none;
+  background:#1a1030;border:1px solid var(--border);
+  color:var(--dim);font-family:inherit;font-size:.85em;cursor:pointer;
+}
 
 /* NICKNAME MODAL */
 #nick-modal{

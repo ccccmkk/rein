@@ -66,12 +66,13 @@
         </div>
         <button class="bet-adj" id="betUp">+</button>
       </div>
+      <button id="mult-btn" class="mult-btn">배율표</button>
     </div>
 
     <div id="win-lines"></div>
 
     <details id="paytable">
-      <summary>PAYTABLE ▾</summary>
+      <summary>심볼 목록 ▾</summary>
       <div id="pt-grid"></div>
     </details>
 
@@ -92,6 +93,22 @@
   </div>
 
   <div style="height:env(safe-area-inset-bottom,16px)"></div>
+</div>
+
+<!-- Multiplier Modal -->
+<div id="mult-modal" class="hidden">
+  <div id="mult-card">
+    <div class="mult-modal-title">배율표</div>
+    <div id="mult-lines-section">
+      <div class="mult-section-hd">📐 매치 배율</div>
+      <div id="mult-match-table"></div>
+    </div>
+    <div id="mult-sym-section">
+      <div class="mult-section-hd">🎰 심볼 가치 (val)</div>
+      <div id="mult-sym-table"></div>
+    </div>
+    <button id="mult-close">닫기</button>
+  </div>
 </div>
 
 <!-- Nickname Modal -->
