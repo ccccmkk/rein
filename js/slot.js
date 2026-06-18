@@ -36,6 +36,60 @@ const CONSUMABLE_ITEMS = [
   {id:'con_shield',  price:100,  name:'배팅 보호',       e:'🛡️',  desc:'다음 1회 스핀 패배시 베팅 반환', effect:'shield'},
 ];
 
+// Upgrades: each level increases effect, price scales up
+const UPGRADES = [
+  {
+    id:'up_match_mult',
+    name:'매치 배율 강화',
+    e:'⚡',
+    desc:'3~8개 매치 배율 전체 +20%',
+    maxLevel:10,
+    basePrice:400,
+    priceScale:1.6,
+    // effect applied in resolve() via game.upgradeLevels
+  },
+  {
+    id:'up_sym_val',
+    name:'심볼 가치 강화',
+    e:'💹',
+    desc:'모든 심볼 기본 가치 +15%',
+    maxLevel:10,
+    basePrice:300,
+    priceScale:1.5,
+  },
+  {
+    id:'up_scatter_bonus',
+    name:'스캐터 보너스 강화',
+    e:'💥',
+    desc:'BOMB·선물 스캐터 보너스 +25%',
+    maxLevel:8,
+    basePrice:500,
+    priceScale:1.7,
+  },
+  {
+    id:'up_wild_power',
+    name:'WILD 파워 강화',
+    e:'🃏',
+    desc:'WILD 1개당 카운트 +1 추가',
+    maxLevel:5,
+    basePrice:800,
+    priceScale:2.0,
+  },
+  {
+    id:'up_mega_jackpot',
+    name:'MEGA 잭팟 강화',
+    e:'🌟',
+    desc:'MEGA 잭팟 보너스 +30%',
+    maxLevel:6,
+    basePrice:1000,
+    priceScale:2.0,
+  },
+];
+
+function upgradePrice(upg, currentLevel){
+  return Math.round(upg.basePrice * Math.pow(upg.priceScale, currentLevel));
+}
+
 const BET_OPTIONS = [10,20,50,100,200,500];
 
 class SlotGame{
@@ -45,6 +99,7 @@ class SlotGame{
     this.unlockedSymIds=new Set(['cherry','lemon','orange','grape']);
     this.ownedConsumables={};
     this.activeEffects=new Set();
+    this.upgradeLevels={};  // id -> level
     this._rebuildPool();
     this.grid=Array.from({length:5},()=>Array.from({length:5},()=>this._randSym()));
     this.spinning=false;
@@ -89,6 +144,18 @@ class SlotGame{
     return true;
   }
 
+  buyUpgrade(upgId){
+    const upg=UPGRADES.find(u=>u.id===upgId);
+    if(!upg) return false;
+    const lv=this.upgradeLevels[upgId]||0;
+    if(lv>=upg.maxLevel) return false;
+    const price=upgradePrice(upg,lv);
+    if(this.balance<price) return false;
+    this.balance-=price;
+    this.upgradeLevels[upgId]=lv+1;
+    return true;
+  }
+
   useConsumable(conItemId){
     if(!this.ownedConsumables[conItemId]) return false;
     const item = CONSUMABLE_ITEMS.find(i=>i.id===conItemId);
@@ -107,9 +174,12 @@ class SlotGame{
 
   resolve(){
     const flat=this.grid.flat();
-    const wildCount=flat.filter(id=>id==='wild').length;
+    // up_wild_power: each level adds +1 to wild count
+    const wildPowerBonus = this.upgradeLevels['up_wild_power']||0;
+    const wildCount = flat.filter(id=>id==='wild').length;
+    const effectiveWild = wildCount>0 ? wildCount+wildPowerBonus : 0;
 
-    // Count each normal symbol (wild adds to best match)
+    // Count each normal symbol
     const cnt={};
     for(let r=0;r<5;r++) for(let c=0;c<5;c++){
       const id=this.grid[r][c];
@@ -120,12 +190,17 @@ class SlotGame{
     const wins=[];
     const winCells=new Set();
 
+    // up_match_mult: each level +20% to base multipliers
+    const multBonus = 1 + (this.upgradeLevels['up_match_mult']||0)*0.20;
+    // up_sym_val: each level +15% to symbol value
+    const valBonus  = 1 + (this.upgradeLevels['up_sym_val']||0)*0.15;
+
     for(const [id,base] of Object.entries(cnt)){
       if(id==='wild') continue;
-      const total = id==='mega' ? base : base+wildCount;
+      const total = id==='mega' ? base : base+effectiveWild;
       if(total<3) continue;
-      const mult = total>=8?100: total>=6?50: total>=5?20: total>=4?8: 3;
-      // collect actual cells of this symbol (+ wilds)
+      const baseMult = total>=8?100: total>=6?50: total>=5?20: total>=4?8: 3;
+      const mult = Math.round(baseMult * multBonus * 10)/10;
       const cells=[];
       for(let r=0;r<5;r++) for(let c=0;c<5;c++){
         if(this.grid[r][c]===id || (this.grid[r][c]==='wild' && id!=='mega')) cells.push([r,c]);
@@ -146,15 +221,20 @@ class SlotGame{
       }
     }
 
+    // up_scatter_bonus: each level +25%
+    const scatterBonus = 1 + (this.upgradeLevels['up_scatter_bonus']||0)*0.25;
+    // up_mega_jackpot: each level +30%
+    const megaBonus = 1 + (this.upgradeLevels['up_mega_jackpot']||0)*0.30;
+
     let symWin=0;
-    for(const w of wins) symWin+=SYM[w.sym].val*w.mult*(this.bet/10);
+    for(const w of wins) symWin+=SYM[w.sym].val*valBonus*w.mult*(this.bet/10);
     let scatterWin=0;
     for(const s of scatters){
-      if(s.sym.special==='bomb') scatterWin+=Math.floor(Math.random()*200)+100;
-      if(s.sym.special==='gift') scatterWin+=Math.floor(Math.random()*500)+100;
+      if(s.sym.special==='bomb') scatterWin+=(Math.floor(Math.random()*200)+100)*scatterBonus;
+      if(s.sym.special==='gift') scatterWin+=(Math.floor(Math.random()*500)+100)*scatterBonus;
     }
     const megaCount=flat.filter(id=>id==='mega').length;
-    if(megaCount>=3) scatterWin+=megaCount*600;
+    if(megaCount>=3) scatterWin+=megaCount*600*megaBonus;
     if(doubleActive&&symWin>0) symWin*=2;
 
     let multiplier=1;

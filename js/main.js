@@ -57,7 +57,7 @@ buildPaytable();
 // SHOP — event delegation on container
 const shopEl=document.getElementById('shop-content');
 shopEl.addEventListener('click',e=>{
-  const btn=e.target.closest('button[data-perm],button[data-con]');
+  const btn=e.target.closest('button[data-perm],button[data-con],button[data-upg]');
   if(!btn||btn.disabled) return;
   if(btn.dataset.perm){
     const id=btn.dataset.perm;
@@ -75,6 +75,14 @@ shopEl.addEventListener('click',e=>{
       updateBalance();
       buildShop();
       showConBuyPopup(item);
+    }
+  } else if(btn.dataset.upg){
+    const id=btn.dataset.upg;
+    const upg=UPGRADES.find(u=>u.id===id);
+    if(game.buyUpgrade(id)){
+      updateBalance();
+      buildShop();
+      showUpgradePopup(upg, game.upgradeLevels[id]);
     }
   }
 });
@@ -103,8 +111,32 @@ function buildShop(){
   }
 
   const h2=document.createElement('div');
-  h2.className='shop-section-title';h2.textContent='⚗️ 소모 아이템';
+  h2.className='shop-section-title';h2.textContent='📈 업그레이드';
   shopEl.appendChild(h2);
+
+  for(const upg of UPGRADES){
+    const lv=game.upgradeLevels[upg.id]||0;
+    const maxed=lv>=upg.maxLevel;
+    const price=upgradePrice(upg,lv);
+    const canAfford=game.balance>=price;
+    const d=document.createElement('div');
+    d.className='shop-item'+(maxed?' shop-owned':'');
+    // level bar
+    const bars=Array.from({length:upg.maxLevel},(_,i)=>
+      `<span class="lvbar${i<lv?' filled':''}"></span>`).join('');
+    const btn=document.createElement('button');
+    btn.className='shop-btn'+(maxed?' owned':canAfford?'':' poor');
+    btn.dataset.upg=upg.id;
+    btn.disabled=maxed;
+    btn.textContent=maxed?'MAX':'💰'+price;
+    d.innerHTML=`<span class="shop-emoji">${upg.e}</span><div class="shop-info"><div class="shop-name">${upg.name} <span class="upg-lv">Lv.${lv}/${upg.maxLevel}</span></div><div class="shop-desc">${upg.desc}</div><div class="lvbars">${bars}</div></div>`;
+    d.appendChild(btn);
+    shopEl.appendChild(d);
+  }
+
+  const h3=document.createElement('div');
+  h3.className='shop-section-title';h3.textContent='⚗️ 소모 아이템';
+  shopEl.appendChild(h3);
 
   for(const item of CONSUMABLE_ITEMS){
     const count=game.ownedConsumables[item.id]||0;
@@ -149,6 +181,16 @@ function showUnlockPopup(sym, desc){
   document.getElementById('up-emoji').textContent=sym.e;
   document.getElementById('up-name').textContent=sym.name+' 해금!';
   document.getElementById('up-desc').textContent=desc;
+  popup.classList.remove('hidden');
+  popup.classList.add('popin');
+  setTimeout(()=>popup.classList.remove('popin'),500);
+}
+
+function showUpgradePopup(upg, newLevel){
+  const popup=document.getElementById('unlock-popup');
+  document.getElementById('up-emoji').textContent=upg.e;
+  document.getElementById('up-name').textContent=upg.name+' Lv.'+newLevel+'!';
+  document.getElementById('up-desc').textContent=upg.desc+(newLevel>=upg.maxLevel?' (MAX 달성!)':'');
   popup.classList.remove('hidden');
   popup.classList.add('popin');
   setTimeout(()=>popup.classList.remove('popin'),500);

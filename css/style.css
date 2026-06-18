@@ -279,6 +279,13 @@ body{
 .shop-btn.owned{background:#1a1030;color:var(--dim);border:1px solid var(--border);cursor:default}
 .shop-btn.poor{background:#2a1020;color:#884444;border:1px solid #441020;cursor:default}
 .own-count{color:var(--gold);font-size:.85em}
+.upg-lv{font-size:.75em;color:var(--purple);font-weight:normal}
+.lvbars{display:flex;gap:2px;margin-top:5px;flex-wrap:wrap}
+.lvbar{
+  width:14px;height:5px;border-radius:3px;
+  background:var(--border);
+}
+.lvbar.filled{background:var(--purple);box-shadow:0 0 4px var(--purple)}
 
 /* UNLOCK POPUP */
 #unlock-popup{
