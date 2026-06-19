@@ -15,7 +15,7 @@ async function sbFetch(path, opts={}){
     });
     if(!res.ok) return null;
     const text = await res.text();
-    return text ? JSON.parse(text) : null;
+    return text ? JSON.parse(text) : true; // 204 No Content = success
   }catch(e){ return null; }
 }
 
