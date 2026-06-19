@@ -22,7 +22,7 @@ async function sbFetch(path, opts={}){
 async function saveGameState(nickname, state){
   return sbFetch('scores?on_conflict=nickname', {
     method:'POST',
-    prefer:'resolution=merge-duplicates,return=minimal',
+    prefer:'resolution=merge-duplicates,return=representation',
     body: JSON.stringify({
       nickname,
       balance: state.balance,

@@ -1,4 +1,4 @@
-const VERSION = 'v22';
+const VERSION = 'v23';
 const CACHE = 'rein-' + VERSION;
 
 // Only cache static assets that never change (icons, manifest)
