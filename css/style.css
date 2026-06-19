@@ -497,6 +497,21 @@ body{
 .settings-btn-danger:hover{background:#3a1020}
 .mult-prob{font-size:.68em;color:var(--dim);margin-left:4px}
 
+/* AUTO SPIN */
+.auto-spin-btn{
+  padding:8px 14px;border-radius:20px;border:1px solid var(--border);
+  background:#1a1030;color:var(--dim);
+  font-family:inherit;font-size:.78em;font-weight:bold;
+  cursor:pointer;letter-spacing:1px;transition:all .15s;flex-shrink:0;
+}
+.auto-spin-btn:hover{background:#2a1848}
+.auto-spin-btn.auto-active{
+  border-color:#44ff88;color:#44ff88;background:#001a0a;
+  box-shadow:0 0 10px #44ff8844;
+  animation:auto-pulse 1.2s ease-in-out infinite;
+}
+@keyframes auto-pulse{0%,100%{box-shadow:0 0 6px #44ff8844}50%{box-shadow:0 0 16px #44ff88aa}}
+
 /* SPIN COUNTER */
 .spin-counter{
   font-size:.65em;color:var(--dim);letter-spacing:1px;

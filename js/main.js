@@ -688,6 +688,7 @@ function showMilestoneModal(spinCount){
       buildPaytable();updateSpinCounter();
       showUnlockPopup({e:perk.e,name:perk.name},perk.desc);
       game.save(); serverSave();
+      if(autoSpinActive) scheduleAutoSpin();
     });
     perksEl.appendChild(card);
   });
@@ -725,7 +726,44 @@ function updateHistory(){
   }).join('');
 }
 
-function updateBalance(){document.getElementById('balance').textContent=game.balance.toLocaleString();}
+function updateBalance(){
+  document.getElementById('balance').textContent=game.balance.toLocaleString();
+  updateAutoSpinBtn();
+}
+
+// AUTO SPIN — unlocked at 100,000 coins ever reached
+let autoSpinActive=false;
+let autoSpinTimer=null;
+
+function updateAutoSpinBtn(){
+  const unlocked=game.maxCoins>=100000;
+  let btn=document.getElementById('auto-spin-btn');
+  if(!unlocked){ if(btn) btn.remove(); return; }
+  if(!btn){
+    btn=document.createElement('button');
+    btn.id='auto-spin-btn';
+    btn.className='auto-spin-btn';
+    btn.addEventListener('click',toggleAutoSpin);
+    document.getElementById('controls').appendChild(btn);
+  }
+  btn.textContent=autoSpinActive?'⏹ AUTO':'▶ AUTO';
+  btn.classList.toggle('auto-active',autoSpinActive);
+}
+
+function toggleAutoSpin(){
+  autoSpinActive=!autoSpinActive;
+  updateAutoSpinBtn();
+  if(autoSpinActive) scheduleAutoSpin();
+  else{ clearTimeout(autoSpinTimer); autoSpinTimer=null; }
+}
+
+function scheduleAutoSpin(){
+  if(!autoSpinActive) return;
+  if(game.spinning||game.pendingMilestone){ autoSpinTimer=setTimeout(scheduleAutoSpin,300); return; }
+  if(!game.canSpin()){ autoSpinActive=false; updateAutoSpinBtn(); return; }
+  pullLever();
+  autoSpinTimer=setTimeout(scheduleAutoSpin,2800);
+}
 function updateSpinCounter(){
   const el=document.getElementById('spin-counter');
   if(!el) return;
