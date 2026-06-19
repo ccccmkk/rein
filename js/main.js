@@ -4,9 +4,10 @@ game.load(); // localStorage fallback on start
 const delay=ms=>new Promise(r=>setTimeout(r,ms));
 
 // Server save (async, non-blocking)
-function serverSave(){
+async function serverSave(){
   if(!playerNick) return;
-  saveGameState(playerNick, game.getState()).catch(()=>{});
+  const ok=await saveGameState(playerNick, game.getState());
+  if(ok===null) showToastMsg('⚠️ 서버 저장 실패 (로컬엔 저장됨)');
 }
 
 // Nickname + server load

@@ -458,6 +458,8 @@ class SlotGame{
       freeSpin:this.freeSpin,
       history:this.history,
       maxCoins:this.maxCoins,
+      pendingConsumable:this.pendingConsumable,
+      pendingMilestone:this.pendingMilestone,
     };
   }
 
@@ -478,6 +480,8 @@ class SlotGame{
     this.freeSpin=s.freeSpin??false;
     this.history=s.history??[];
     this.maxCoins=s.maxCoins??this.balance;
+    this.pendingConsumable=s.pendingConsumable??null;
+    this.pendingMilestone=s.pendingMilestone??null;
     this._rebuildPool();
     this._resetGrid();
   }
