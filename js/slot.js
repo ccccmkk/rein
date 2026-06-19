@@ -302,8 +302,20 @@ class SlotGame{
     const lines=[];
     for(let r=0;r<n;r++) lines.push({name:`${r+1}행`,isDiag:false,coords:Array.from({length:n},(_,c)=>[r,c])});
     for(let c=0;c<n;c++) lines.push({name:`${c+1}열`,isDiag:false,coords:Array.from({length:n},(_,r)=>[r,c])});
-    lines.push({name:'↘대각',isDiag:true,coords:Array.from({length:n},(_,i)=>[i,i])});
-    lines.push({name:'↙대각',isDiag:true,coords:Array.from({length:n},(_,i)=>[i,n-1-i])});
+    // All diagonals of length >= 3 (↘ and ↙)
+    for(let offset=-(n-3);offset<=n-3;offset++){
+      const d1=[],d2=[];
+      for(let i=0;i<n;i++){
+        const r=i, c=i+offset;
+        if(c>=0&&c<n) d1.push([r,c]);
+      }
+      for(let i=0;i<n;i++){
+        const r=i, c=(n-1-i)+offset;
+        if(c>=0&&c<n) d2.push([r,c]);
+      }
+      if(d1.length>=3) lines.push({name:`↘대각${offset>=0?'+':''}${offset}`,isDiag:true,coords:d1});
+      if(d2.length>=3) lines.push({name:`↙대각${offset>=0?'+':''}${offset}`,isDiag:true,coords:d2});
+    }
 
     const hasDiagBoost=this.activePerks.includes('diag_boost');
     const hasCrownPower=this.activePerks.includes('crown_power');
