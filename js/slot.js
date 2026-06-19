@@ -16,6 +16,14 @@ const ALL_SYMBOLS = [
 ];
 const SYM = Object.fromEntries(ALL_SYMBOLS.map(s=>[s.id,s]));
 
+// Symbol suppression shop items (reduce weight by 40% per purchase, max 5 stacks)
+const SUPPRESS_ITEMS = [
+  {id:'sup_cherry', sym:'cherry', e:'🍒', name:'체리 억제', price:500,  maxStack:5, desc:'체리 출현 확률 -40% (최대 5회 구매)'},
+  {id:'sup_lemon',  sym:'lemon',  e:'🍋', name:'레몬 억제', price:600,  maxStack:5, desc:'레몬 출현 확률 -40% (최대 5회 구매)'},
+  {id:'sup_orange', sym:'orange', e:'🍊', name:'오렌지 억제',price:800,  maxStack:5, desc:'오렌지 출현 확률 -40% (최대 5회 구매)'},
+  {id:'sup_grape',  sym:'grape',  e:'🍇', name:'포도 억제', price:1000, maxStack:5, desc:'포도 출현 확률 -40% (최대 5회 구매)'},
+];
+
 const PERMANENT_ITEMS = [
   {id:'unlock_bell',   sym:'bell',    price:800,   desc:'벨 심볼 추가 (배율 높음)'},
   {id:'unlock_star',   sym:'star',    price:2000,  desc:'별 심볼 추가 (희귀)'},
@@ -191,11 +199,25 @@ class SlotGame{
     return true;
   }
 
-  buyConsumable(conItemId){
+  buyConsumable(conItemId, qty=1){
     const item=CONSUMABLE_ITEMS.find(i=>i.id===conItemId);
+    const total=item.price*qty;
+    if(!item||this.balance<total) return false;
+    this.balance-=total;
+    this.ownedConsumables[conItemId]=(this.ownedConsumables[conItemId]||0)+qty;
+    return true;
+  }
+
+  buySuppressItem(supItemId){
+    const item=SUPPRESS_ITEMS.find(i=>i.id===supItemId);
     if(!item||this.balance<item.price) return false;
+    const cur=this.suppressLevels?.[supItemId]||0;
+    if(cur>=item.maxStack) return false;
     this.balance-=item.price;
-    this.ownedConsumables[conItemId]=(this.ownedConsumables[conItemId]||0)+1;
+    if(!this.suppressLevels) this.suppressLevels={};
+    this.suppressLevels[supItemId]=(cur+1);
+    // Apply weight reduction: each stack * 0.6 multiplier
+    this.weightBoosts[item.sym]=(this.weightBoosts[item.sym]||1)*0.6;
     return true;
   }
 
@@ -233,11 +255,15 @@ class SlotGame{
 
   activatePendingConsumable(){
     if(!this.pendingConsumable) return null;
-    const id=this.pendingConsumable; this.pendingConsumable=null;
+    const id=this.pendingConsumable;
     const item=CONSUMABLE_ITEMS.find(i=>i.id===id);
-    if(!item||!this.ownedConsumables[id]) return null;
+    if(!item||!this.ownedConsumables[id]){ this.pendingConsumable=null; return null; }
     this.ownedConsumables[id]--;
-    if(!this.ownedConsumables[id]) delete this.ownedConsumables[id];
+    if(!this.ownedConsumables[id]){
+      delete this.ownedConsumables[id];
+      this.pendingConsumable=null; // 재고 소진시 자동 해제
+    }
+    // pending은 유지 (재고 있는 한 계속 활성)
     this.activeEffects.add(item.effect);
     return item;
   }
@@ -492,6 +518,7 @@ class SlotGame{
       maxCoins:this.maxCoins,
       pendingConsumable:this.pendingConsumable,
       pendingMilestone:this.pendingMilestone,
+      suppressLevels:this.suppressLevels||{},
     };
   }
 
@@ -514,6 +541,7 @@ class SlotGame{
     this.maxCoins=s.maxCoins??this.balance;
     this.pendingConsumable=s.pendingConsumable??null;
     this.pendingMilestone=s.pendingMilestone??null;
+    this.suppressLevels=s.suppressLevels??{};
     this._rebuildPool();
     this._resetGrid();
   }

@@ -127,10 +127,14 @@ buildPaytable();
 // SHOP
 const shopEl=document.getElementById('shop-content');
 shopEl.addEventListener('click',e=>{
-  const btn=e.target.closest('button[data-perm],button[data-con],button[data-grid],button[data-bingo]');
+  const btn=e.target.closest('button[data-perm],button[data-con],button[data-grid],button[data-bingo],button[data-sup]');
   if(!btn||btn.disabled) return;
   const persist=()=>{ game.save(); serverSave(); };
-  if(btn.dataset.bingo){
+  if(btn.dataset.sup){
+    const id=btn.dataset.sup;
+    const item=SUPPRESS_ITEMS.find(i=>i.id===id);
+    if(game.buySuppressItem(id)){ updateBalance();buildShop();showUnlockPopup({e:item.e,name:item.name},item.desc);persist(); }
+  } else if(btn.dataset.bingo){
     const id=btn.dataset.bingo;
     const item=BINGO_ITEMS.find(i=>i.id===id);
     if(game.buyBingo(id)){ updateBalance();buildShop();showUnlockPopup(item,item.desc);persist(); }
@@ -140,8 +144,9 @@ shopEl.addEventListener('click',e=>{
     if(game.unlockSymbol(id)){ updateBalance();buildShop();buildPaytable();showUnlockPopup(SYM[item.sym],item.desc);persist(); }
   } else if(btn.dataset.con){
     const id=btn.dataset.con;
+    const qty=parseInt(btn.dataset.qty||'1');
     const item=CONSUMABLE_ITEMS.find(i=>i.id===id);
-    if(game.buyConsumable(id)){ updateBalance();buildShop();buildConsumableBar();showConBuyPopup(item);persist(); }
+    if(game.buyConsumable(id,qty)){ updateBalance();buildShop();buildConsumableBar();showConBuyPopup(item,qty);persist(); }
   } else if(btn.dataset.grid){
     const id=btn.dataset.grid;
     const item=GRID_ITEMS.find(i=>i.id===id);
@@ -207,20 +212,45 @@ function buildShop(){
     d.appendChild(btn);shopEl.appendChild(d);
   }
 
+  const hSup=document.createElement('div');
+  hSup.className='shop-section-title';hSup.textContent='📉 심볼 억제 (영구)';
+  shopEl.appendChild(hSup);
+  for(const item of SUPPRESS_ITEMS){
+    const stack=game.suppressLevels?.[item.id]||0;
+    const maxed=stack>=item.maxStack;
+    const canAfford=game.balance>=item.price;
+    const d=document.createElement('div');
+    d.className='shop-item'+(maxed?' shop-owned':'');
+    const btn=document.createElement('button');
+    btn.className='shop-btn'+(maxed?' owned':canAfford?'':' poor');
+    btn.dataset.sup=item.id;btn.disabled=maxed;
+    btn.textContent=maxed?'MAX':'💰'+item.price;
+    const bars=Array.from({length:item.maxStack},(_,i)=>`<span class="lvbar${i<stack?' filled':''}"></span>`).join('');
+    d.innerHTML=`<span class="shop-emoji">${item.e}</span><div class="shop-info"><div class="shop-name">${item.name} <span style="color:var(--dim)">${stack}/${item.maxStack}</span></div><div class="shop-desc">${item.desc}</div><div class="lvbars" style="margin-top:4px">${bars}</div></div>`;
+    d.appendChild(btn);shopEl.appendChild(d);
+  }
+
   const h3=document.createElement('div');
   h3.className='shop-section-title';h3.textContent='⚗️ 소모 아이템';
   shopEl.appendChild(h3);
   for(const item of CONSUMABLE_ITEMS){
     const count=game.ownedConsumables[item.id]||0;
     const canAfford=game.balance>=item.price;
+    const canAfford10=game.balance>=item.price*10;
     const d=document.createElement('div');
     d.className='shop-item';
+    const btnWrap=document.createElement('div');btnWrap.style.cssText='display:flex;gap:4px;flex-shrink:0';
     const btn=document.createElement('button');
     btn.className='shop-btn'+(canAfford?'':' poor');
-    btn.dataset.con=item.id;
+    btn.dataset.con=item.id;btn.dataset.qty='1';
     btn.textContent='💰'+item.price;
+    const btn10=document.createElement('button');
+    btn10.className='shop-btn'+(canAfford10?'':' poor');
+    btn10.dataset.con=item.id;btn10.dataset.qty='10';
+    btn10.textContent='×10';
+    btnWrap.appendChild(btn);btnWrap.appendChild(btn10);
     d.innerHTML=`<span class="shop-emoji">${item.e}</span><div class="shop-info"><div class="shop-name">${item.name}${count>0?` <span class="own-count">×${count}</span>`:''}</div><div class="shop-desc">${item.desc}</div></div>`;
-    d.appendChild(btn);shopEl.appendChild(d);
+    d.appendChild(btnWrap);shopEl.appendChild(d);
   }
 }
 
@@ -265,10 +295,10 @@ function showUpgradePopup(upg,newLevel){
   popup.classList.add('popin');
   setTimeout(()=>popup.classList.remove('popin'),500);
 }
-function showConBuyPopup(item){
+function showConBuyPopup(item,qty=1){
   const popup=document.getElementById('unlock-popup');
   document.getElementById('up-emoji').textContent=item.e;
-  document.getElementById('up-name').textContent=item.name+' 구매!';
+  document.getElementById('up-name').textContent=item.name+(qty>1?` ×${qty}`:'')+' 구매!';
   document.getElementById('up-desc').textContent=item.desc;
   popup.classList.remove('hidden');
   popup.classList.add('popin');
