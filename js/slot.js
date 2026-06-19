@@ -98,6 +98,11 @@ const UPGRADES = [
     desc:'MEGA 잭팟 보너스 +30%',
     maxLevel:6, basePrice:1000, priceScale:2.0,
   },
+  {
+    id:'up_sym_suppress', name:'하위 심볼 약화', e:'🔻',
+    desc:'체리/레몬/오렌지/포도 출현 확률 -12% (누적)',
+    maxLevel:8, basePrice:800, priceScale:1.8,
+  },
 ];
 
 function upgradePrice(upg, currentLevel){
@@ -145,6 +150,11 @@ class SlotGame{
     if(this.activePerks.includes('wild_magnet')&&s.id==='wild') w*=3;
     if(this.activePerks.includes('mega_sense')&&s.id==='mega') w*=2;
     if(this.weightBoosts[s.id]) w*=this.weightBoosts[s.id];
+    // Lower symbol suppression upgrade
+    const suppressLevel=this.upgradeLevels['up_sym_suppress']||0;
+    if(suppressLevel>0&&['cherry','lemon','orange','grape'].includes(s.id)){
+      w*=Math.max(0.05, 1-suppressLevel*0.12);
+    }
     return w;
   }
 

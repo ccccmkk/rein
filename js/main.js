@@ -398,12 +398,15 @@ function buildUpgradeTab(){
     const scatterBonus=1+(game.upgradeLevels['up_scatter_bonus']||0)*0.25;
     const megaBns=1+(game.upgradeLevels['up_mega_jackpot']||0)*0.30;
     const wildPow=game.upgradeLevels['up_wild_power']||0;
+    const suppressLevel=game.upgradeLevels['up_sym_suppress']||0;
+    const suppressPct=Math.round(Math.min(95,suppressLevel*12));
     const statMap={
       up_match_mult:`배율 ×${multBonus.toFixed(2)}`,
       up_sym_val:`심볼가치 ×${valBonus.toFixed(2)}`,
       up_scatter_bonus:`스캐터 ×${scatterBonus.toFixed(2)}`,
       up_mega_jackpot:`MEGA ×${megaBns.toFixed(2)}`,
       up_wild_power:`WILD +${wildPow}카운트`,
+      up_sym_suppress:`하위심볼 -${suppressPct}%`,
     };
     const bars=Array.from({length:upg.maxLevel},(_,i)=>`<span class="lvbar${i<lv?' filled':''}"></span>`).join('');
     const d=document.createElement('div');d.className='upg-card'+(maxed?' maxed':'');
