@@ -309,21 +309,31 @@ class SlotGame{
     const hasCrownPower=this.activePerks.includes('crown_power');
 
     for(const line of lines){
-      let target=null;
-      for(const [r,c] of line.coords){ if(this.grid[r][c]!=='wild'){target=this.grid[r][c];break;} }
-      if(!target) continue;
-      const cells=[];
-      for(const [r,c] of line.coords){
-        const id=this.grid[r][c];
-        if(id===target||id==='wild') cells.push([r,c]); else break;
+      // Find the longest consecutive run of matching symbols anywhere in the line
+      let bestCells=[], bestTarget=null;
+      for(let start=0; start<=line.coords.length-3; start++){
+        const [r0,c0]=line.coords[start];
+        // Determine target: first non-wild from this start position
+        let target=null;
+        for(let j=start;j<line.coords.length;j++){
+          const sid=this.grid[line.coords[j][0]][line.coords[j][1]];
+          if(sid!=='wild'){target=sid;break;}
+        }
+        if(!target) continue;
+        const cells=[];
+        for(let j=start;j<line.coords.length;j++){
+          const id=this.grid[line.coords[j][0]][line.coords[j][1]];
+          if(id===target||id==='wild') cells.push(line.coords[j]); else break;
+        }
+        if(cells.length>bestCells.length){bestCells=cells;bestTarget=target;}
       }
-      if(cells.length<3) continue;
-      let baseMult=cells.length>=5?30:cells.length>=4?8:3;
+      if(bestCells.length<3) continue;
+      let baseMult=bestCells.length>=5?30:bestCells.length>=4?8:3;
       if(hasDiagBoost&&line.isDiag) baseMult*=2;
-      if(hasCrownPower&&target==='crown') baseMult*=3;
+      if(hasCrownPower&&bestTarget==='crown') baseMult*=3;
       const mult=Math.round(baseMult*multBonus*10)/10;
-      cells.forEach(([rr,cc])=>winCells.add(`${rr},${cc}`));
-      wins.push({sym:target,count:cells.length,mult,cells,name:line.name,isDiag:line.isDiag});
+      bestCells.forEach(([rr,cc])=>winCells.add(`${rr},${cc}`));
+      wins.push({sym:bestTarget,count:bestCells.length,mult,cells:bestCells,name:line.name,isDiag:line.isDiag});
     }
 
     // Scatter specials
